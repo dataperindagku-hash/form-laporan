@@ -3,53 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blueprint PerindagKU Web</title>
+    <title>PerindagKU Web</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
     <div id="loginPage" class="container">
-        <h2>Login PerindagKU</h2>
+        <div class="header-title">
+            <h2>Login PerindagKU</h2>
+        </div>
+        
         <form id="loginForm">
-            <label for="nip">NIP:</label>
-            <input type="text" id="nip" required>
+            <div class="form-group">
+                <label for="nip">NIP</label>
+                <input type="text" id="nip" placeholder="Masukkan NIP Anda" required>
+            </div>
             
-            <label for="password">Password:</label>
-            <input type="password" id="password" required>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Masukkan Password" required>
+            </div>
             
-            <button type="submit">Masuk</button>
+            <button type="submit" class="btn-primary">Masuk</button>
         </form>
-        <p id="loginMessage"></p>
+        <p id="loginMessage" class="message"></p>
     </div>
 
     <div id="dashboardPage" class="container" style="display: none;">
-        <h2>Dashboard PerindagKU</h2>
-        <div class="user-info">
-            <p><strong>Nama:</strong> <span id="userNama"></span></p>
-            <p><strong>NIP:</strong> <span id="userNip"></span></p>
-            <p><strong>Hak Akses:</strong> <span id="userHakAkses"></span></p>
-            
-            <button id="btnLogout" class="btn-logout">Logout</button>
+        <div class="header-title">
+            <h2>Dashboard PerindagKU</h2>
+        </div>
+        
+        <div class="user-card">
+            <p><strong>Nama:</strong> <span id="userNama">-</span></p>
+            <p><strong>NIP:</strong> <span id="userNip">-</span></p>
+            <p><strong>Hak Akses:</strong> <span id="userHakAkses">-</span></p>
+            <button id="btnLogout" class="btn-danger">Logout</button>
         </div>
 
-        <hr>
+        <hr class="divider">
 
-        <h3>Form Laporan</h3>
-        <form id="laporanForm">
-            <label for="modul">Modul Dinas:</label>
-            <select id="modul" required>
-                <option value="">-- Pilih Modul --</option>
-            </select>
+        <div class="form-section">
+            <h3>Form Laporan</h3>
+            <form id="laporanForm">
+                <div class="form-group">
+                    <label for="modul">Modul Dinas</label>
+                    <select id="modul" required>
+                        <option value="">-- Pilih Modul --</option>
+                        </select>
+                </div>
 
-            <label for="namaUsaha">Nama Usaha:</label>
-            <input type="text" id="namaUsaha" required>
+                <div class="form-group">
+                    <label for="namaUsaha">Nama Usaha</label>
+                    <input type="text" id="namaUsaha" placeholder="Contoh: Toko Maju Jaya" required>
+                </div>
 
-            <label for="keterangan">Keterangan:</label>
-            <textarea id="keterangan" rows="4" required></textarea>
+                <div class="form-group">
+                    <label for="keterangan">Keterangan</label>
+                    <textarea id="keterangan" rows="4" placeholder="Tuliskan detail laporan..." required></textarea>
+                </div>
 
-            <button type="submit">Kirim Laporan</button>
-        </form>
-        <p id="laporanMessage"></p>
+                <button type="submit" class="btn-primary">Kirim Laporan</button>
+            </form>
+            <p id="laporanMessage" class="message"></p>
+        </div>
     </div>
 
     <script src="js/api.js"></script>
