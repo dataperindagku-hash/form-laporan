@@ -12,6 +12,8 @@
     .btn-green { background-color: var(--identity-green); color: white; border-radius: 25px;}
     .btn-green:hover { background-color: #144d18; color: white; }
     .btn-preview { background-color: #1976D2; color: white; border-radius: 20px; }
+    .btn-buka { background-color: var(--identity-yellow); color: white; font-weight: bold; }
+    .btn-buka:hover { background-color: #e67300; color: white; }
     .modern-input { background-color: #FAFAFA; border: 2px solid #E0E0E0; border-radius: 20px; padding: 10px 15px; }
     #signature-pad { border: 2px dashed #ccc; border-radius: 20px; cursor: crosshair; background-color: #fafafa; }
   </style>
@@ -24,27 +26,40 @@
       <div class="card-header bg-green text-left py-4 rounded-top-4 d-flex align-items-center">
         <div>
           <h4 class="mb-1 fw-bold text-white" id="formTitle">Formulir Pelaporan</h4>
-          <p class="mb-0 small" style="color: #A5D6A7;" id="formSubtitle">Modul: Belum dipilih</p>
+          <p class="mb-0 small" style="color: #A5D6A7;" id="formSubtitle">Pilih modul dan masukkan kode akses</p>
         </div>
       </div>
       
       <div class="card-body p-4 p-md-5">
         
-        <!-- BAGIAN BARU: Pilihan Modul -->
-        <div id="moduleSelectionArea" class="mb-4 p-3 rounded-4" style="background-color: #E8F5E9; border: 1px solid #C8E6C9;">
-          <label class="form-label fw-bold text-success mb-2">Pilih Modul Pendataan:</label>
-          <select id="moduleSelector" class="form-select modern-input" onchange="loadModuleForm()">
-            <option value="">-- Sentuh untuk memilih --</option>
-            <option value="Pendataan Usaha Perdagangan">Pendataan Usaha Perdagangan</option>
-            <option value="Pendataan Pedagang Pasar">Pendataan Pedagang Pasar</option>
-            <option value="Pendataan IKM">Pendataan IKM</option>
-            <option value="Pendataan Pasar Swalayan">Pendataan Pasar Swalayan</option>
-          </select>
+        <!-- BAGIAN HAK AKSES: Pilihan Modul & PIN -->
+        <div id="moduleSelectionArea" class="mb-4 p-4 rounded-4 shadow-sm" style="background-color: #E8F5E9; border: 1px solid #C8E6C9;">
+          
+          <div class="mb-3">
+            <label class="form-label fw-bold text-success mb-2">1. Pilih Modul Pendataan:</label>
+            <select id="moduleSelector" class="form-select modern-input">
+              <option value="">-- Sentuh untuk memilih --</option>
+              <option value="Pendataan Usaha Perdagangan">Pendataan Usaha Perdagangan</option>
+              <option value="Pendataan Pedagang Pasar">Pendataan Pedagang Pasar</option>
+              <option value="Pendataan IKM">Pendataan IKM</option>
+              <option value="Pendataan Pasar Swalayan">Pendataan Pasar Swalayan</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold text-success mb-2">2. Kode Akses Pendata:</label>
+            <input type="password" id="inputKodeAkses" class="form-control modern-input" placeholder="Masukkan PIN / Kode Modul">
+          </div>
+
+          <div class="d-grid">
+            <button type="button" class="btn btn-buka p-2 rounded-pill" onclick="verifikasiAkses()">Buka Formulir 🔒</button>
+          </div>
+
         </div>
 
         <div id="loadingArea" class="my-4 text-center d-none">
           <div class="spinner-border text-success" role="status"></div>
-          <p class="mt-2 text-muted small">Menyiapkan formulir dari server...</p>
+          <p class="mt-2 text-muted small">Membuka brankas data server...</p>
         </div>
 
         <form id="dynamicForm" class="d-none" onsubmit="submitFormData(this); return false;">
@@ -63,6 +78,7 @@
 
   <!-- Modal Preview Berita Acara -->
   <div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
+    <!-- ... (Sama seperti sebelumnya) ... -->
     <div class="modal-dialog modal-dialog-scrollable">
       <div class="modal-content">
         <div class="modal-header">
@@ -83,8 +99,17 @@
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxoabOhILmnKHBElWFFGr3qIjmpRWVouvdGOW5YGEXke6Fnr0udZ5FCBVg4K0YhhGMZ/exec"; 
     
-    // Variabel NAMA_MODUL sekarang dibuat dinamis (bisa berubah sesuai pilihan user)
     let NAMA_MODUL = ""; 
+
+    // ==========================================
+    // PENGATURAN KODE AKSES (PIN) MASING-MASING MODUL
+    // ==========================================
+    const dataAksesModul = {
+      "Pendataan Usaha Perdagangan": "DAGANG123",
+      "Pendataan Pedagang Pasar": "PASAR123",
+      "Pendataan IKM": "IKM123",
+      "Pendataan Pasar Swalayan": "SWALAYAN123"
+    };
 
     const dataWilayah = {
         "Betoambari": ["Katobengke", "Labalawa", "Lipu", "Sulaa", "Waborobo"],
@@ -103,34 +128,57 @@
 
     document.addEventListener("DOMContentLoaded", function() {
       initGPS();
-      // Proses penarikan data dipindahkan ke dalam fungsi loadModuleForm()
     });
 
     // ==========================================
-    // FUNGSI BARU: Menarik formulir saat opsi dipilih
+    // FUNGSI VERIFIKASI KODE AKSES
     // ==========================================
-    function loadModuleForm() {
+    function verifikasiAkses() {
       const selector = document.getElementById('moduleSelector');
+      const inputPin = document.getElementById('inputKodeAkses').value;
+      const formEl = document.getElementById('dynamicForm');
+      
       NAMA_MODUL = selector.value;
       
-      const formEl = document.getElementById('dynamicForm');
-      const container = document.getElementById('fieldsContainer');
-      const loading = document.getElementById('loadingArea');
-      const alertBox = document.getElementById('alertBox');
-      
-      // Reset form jika dikosongkan kembali
+      // Sembunyikan form setiap kali verifikasi ulang
+      formEl.classList.add('d-none');
+      document.getElementById('alertBox').classList.add('d-none');
+
       if (!NAMA_MODUL) {
-        formEl.classList.add('d-none');
-        loading.classList.add('d-none');
-        document.getElementById('formSubtitle').innerText = "Modul: Belum dipilih";
+        showAlert('Silakan pilih modul terlebih dahulu!', 'warning');
         return;
       }
 
-      // Tampilkan animasi loading
+      if (!inputPin) {
+        showAlert('Kode akses tidak boleh kosong!', 'warning');
+        return;
+      }
+
+      // Cek apakah PIN yang dimasukkan cocok dengan dataAksesModul
+      if (dataAksesModul[NAMA_MODUL] === inputPin) {
+        // Jika Benar, sembunyikan area pilihan dan muat formulir
+        document.getElementById('moduleSelectionArea').classList.add('d-none');
+        loadModuleForm();
+      } else {
+        // Jika Salah
+        showAlert('Kode Akses salah! Anda tidak memiliki izin untuk membuka modul ini.', 'danger');
+        document.getElementById('inputKodeAkses').value = ""; // Kosongkan input
+      }
+    }
+
+    // ==========================================
+    // MENARIK FORMULIR SETELAH AKSES DIBERIKAN
+    // ==========================================
+    function loadModuleForm() {
+      const container = document.getElementById('fieldsContainer');
+      const loading = document.getElementById('loadingArea');
+      const formEl = document.getElementById('dynamicForm');
+      const alertBox = document.getElementById('alertBox');
+      
       formEl.classList.add('d-none');
       alertBox.classList.add('d-none');
       loading.classList.remove('d-none');
-      container.innerHTML = ""; // Bersihkan field lama
+      container.innerHTML = ""; 
       document.getElementById('formSubtitle').innerText = `Modul: ${NAMA_MODUL} (Memuat...)`;
 
       const fetchUrl = `${API_URL}?action=getFields&nama_modul=${encodeURIComponent(NAMA_MODUL)}`;
@@ -142,6 +190,8 @@
           if (data.length === 0) {
             showAlert(`Formulir untuk modul "${NAMA_MODUL}" belum tersedia di server.`, 'danger');
             document.getElementById('formSubtitle').innerText = `Modul: ${NAMA_MODUL} (Kosong)`;
+            // Kembalikan kotak akses agar bisa pilih modul lain
+            document.getElementById('moduleSelectionArea').classList.remove('d-none');
             return;
           }
           fieldsData = data;
@@ -151,6 +201,7 @@
           loading.classList.add('d-none');
           showAlert('Koneksi gagal: ' + err.message, 'danger');
           document.getElementById('formSubtitle').innerText = `Modul: ${NAMA_MODUL} (Gagal Memuat)`;
+          document.getElementById('moduleSelectionArea').classList.remove('d-none');
         });
     }
 
@@ -172,9 +223,9 @@
     }
 
     function renderFormFields(fields) {
-      document.getElementById('formSubtitle').innerText = `Modul: ${NAMA_MODUL}`;
+      document.getElementById('formSubtitle').innerText = `Modul Aktif: ${NAMA_MODUL}`;
       const container = document.getElementById('fieldsContainer');
-      isCanvasActive = false; // Reset status canvas
+      isCanvasActive = false; 
       
       fields.forEach((fieldRow) => {
         let label = "", jenis = "text", opsi = "";
@@ -186,10 +237,8 @@
         }
 
         if(!label) return;
-        
         const labelClean = label.toLowerCase();
         if(labelClean.includes("petugas") || labelClean.includes("surveyor")) return;
-
         const jenisClean = jenis.toLowerCase().trim();
         const fieldWrapper = document.createElement('div');
         fieldWrapper.className = 'mb-4';
@@ -234,7 +283,6 @@
             if(this.value === 'Ya') { inputSub.classList.remove('d-none'); inputSub.required = true; } 
             else { inputSub.classList.add('d-none'); inputSub.required = false; inputSub.value = ''; }
           });
-
           fieldWrapper.appendChild(select);
           fieldWrapper.appendChild(inputSub);
 
@@ -244,12 +292,7 @@
           select.name = label; 
           select.required = true;
           select.innerHTML = `<option value="">-- Pilih --</option>`;
-          
-          if (opsi) {
-            opsi.split(',').forEach(opt => {
-              select.innerHTML += `<option value="${opt.trim()}">${opt.trim()}</option>`;
-            });
-          }
+          if (opsi) { opsi.split(',').forEach(opt => { select.innerHTML += `<option value="${opt.trim()}">${opt.trim()}</option>`; }); }
           
           const inputLainnya = document.createElement('input');
           inputLainnya.type = 'text';
@@ -260,11 +303,8 @@
           select.addEventListener('change', function() {
             if(this.value.toLowerCase() === 'lainnya' || this.value.toLowerCase() === 'lain-lain') {
               inputLainnya.classList.remove('d-none'); inputLainnya.required = true;
-            } else {
-              inputLainnya.classList.add('d-none'); inputLainnya.required = false; inputLainnya.value = '';
-            }
+            } else { inputLainnya.classList.add('d-none'); inputLainnya.required = false; inputLainnya.value = ''; }
           });
-
           fieldWrapper.appendChild(select);
           fieldWrapper.appendChild(inputLainnya);
 
@@ -299,7 +339,6 @@
           selKel.addEventListener('change', function() {
             if(this.value) { inpRt.classList.remove('d-none'); } else { inpRt.classList.add('d-none'); }
           });
-
           fieldWrapper.appendChild(selKec);
           fieldWrapper.appendChild(selKel);
           fieldWrapper.appendChild(inpRt);
@@ -318,9 +357,7 @@
               let val = this.value.replace(/\./g, '');
               if(!isNaN(val) && val.length > 0) {
                 this.value = parseInt(val, 10).toLocaleString('id-ID');
-              } else {
-                this.value = val.replace(/[^\d]/g, '');
-              }
+              } else { this.value = val.replace(/[^\d]/g, ''); }
             });
           }
           fieldWrapper.appendChild(input);
@@ -361,17 +398,29 @@
         container.appendChild(fieldWrapper);
       });
 
+      // Munculkan form dan tombol ganti modul
       document.getElementById('dynamicForm').classList.remove('d-none');
+      
+      // Tambahkan tombol untuk ganti modul di bagian atas form
+      const btnGanti = document.createElement('button');
+      btnGanti.className = "btn btn-outline-danger btn-sm mb-4 fw-bold";
+      btnGanti.innerHTML = "🔙 Kunci & Ganti Modul";
+      btnGanti.onclick = function() {
+          document.getElementById('dynamicForm').classList.add('d-none');
+          document.getElementById('moduleSelectionArea').classList.remove('d-none');
+          document.getElementById('inputKodeAkses').value = "";
+          document.getElementById('formSubtitle').innerText = "Pilih modul dan masukkan kode akses";
+      };
+      container.insertBefore(btnGanti, container.firstChild);
+
       if (isCanvasActive) initSignaturePad();
     }
 
     function showBeritaAcara() {
       let previewText = "BERITA ACARA\n========================\n\n";
       previewText += `Modul Laporan : ${NAMA_MODUL}\n`;
-      
       const now = new Date();
       const timeStr = `${now.getDate()} ${now.toLocaleString('id-ID', {month: 'long'})} ${now.getFullYear()}, ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
-      
       previewText += `Waktu Data    : ${timeStr}\n`;
       previewText += `Lokasi GPS    : ${lokasiSaatIni}\n\n`;
       previewText += "RINCIAN DATA:\n------------------------\n";
@@ -384,10 +433,8 @@
           previewText += `• ${name}: ${val}\n`;
         }
       });
-
       previewText += "\n========================\n";
       previewText += "Dengan ini pihak pelaku usaha menyatakan bahwa data yang diberikan telah sesuai dan benar adanya untuk digunakan sebagaimana mestinya.";
-
       document.getElementById('previewContent').innerText = previewText;
       new bootstrap.Modal(document.getElementById('previewModal')).show();
     }
@@ -405,26 +452,18 @@
       const btn = document.getElementById('submitBtn');
       btn.disabled = true;
       btn.innerText = 'MENGIRIM DATA...';
-      
       const formData = new FormData(formElement);
       let payloadInside = {};
 
       if (isCanvasActive) {
         const hiddenTtd = document.getElementById('hidden_ttd');
-        if (isCanvasBlank()) {
-          showAlert('Tanda tangan wajib diisi!', 'danger');
-          btn.disabled = false; btn.innerText = 'KIRIM LAPORAN'; return;
-        }
+        if (isCanvasBlank()) { showAlert('Tanda tangan wajib diisi!', 'danger'); btn.disabled = false; btn.innerText = 'KIRIM LAPORAN'; return; }
         hiddenTtd.value = canvas.toDataURL("image/png");
       }
 
       for (const [key, value] of formData.entries()) {
         if (value instanceof File && value.name) {
-          if(value.size > 0) {
-            payloadInside[key] = await getBase64(value); 
-          } else {
-            payloadInside[key] = "";
-          }
+          if(value.size > 0) { payloadInside[key] = await getBase64(value); } else { payloadInside[key] = ""; }
         } else {
           let finalVal = value;
           const inputEl = document.querySelector(`input[name="${key}"]`);
@@ -451,9 +490,12 @@
         if (data.status === "Sukses") {
             showAlert(data.pesan || 'Sukses! Laporan Tersimpan.', 'success');
             formElement.reset();
-            // Kembalikan ke pilihan modul kosong
+            // Kembalikan ke menu utama setelah sukses kirim
+            document.getElementById('dynamicForm').classList.add('d-none');
+            document.getElementById('moduleSelectionArea').classList.remove('d-none');
+            document.getElementById('inputKodeAkses').value = "";
             document.getElementById('moduleSelector').value = "";
-            loadModuleForm();
+            document.getElementById('formSubtitle').innerText = "Pilih modul dan masukkan kode akses";
             if(isCanvasActive) clearCanvas();
             window.scrollTo(0,0);
         } else {
@@ -476,37 +518,25 @@
     // ==========================================
     function initSignaturePad() {
       canvas = document.getElementById('signature-pad');
-      if(!canvas) return; // Mencegah error jika kanvas tidak ada
-      
+      if(!canvas) return; 
       ctx = canvas.getContext('2d');
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = "#000000";
-      ctx.lineJoin = "round";
+      ctx.lineWidth = 3; ctx.strokeStyle = "#000000"; ctx.lineJoin = "round";
 
       canvas.addEventListener("mousedown", (e) => { drawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); });
       canvas.addEventListener("mousemove", (e) => { if (drawing) { ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); } });
       canvas.addEventListener("mouseup", () => drawing = false);
       
       canvas.addEventListener("touchstart", (e) => {
-        drawing = true; ctx.beginPath();
-        var touch = e.touches[0];
-        var rect = canvas.getBoundingClientRect();
-        ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
-        e.preventDefault();
+        drawing = true; ctx.beginPath(); var touch = e.touches[0]; var rect = canvas.getBoundingClientRect();
+        ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top); e.preventDefault();
       }, {passive: false});
       
       canvas.addEventListener("touchmove", (e) => {
-        if (!drawing) return;
-        var touch = e.touches[0];
-        var rect = canvas.getBoundingClientRect();
-        ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
-        ctx.stroke();
-        e.preventDefault();
+        if (!drawing) return; var touch = e.touches[0]; var rect = canvas.getBoundingClientRect();
+        ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top); ctx.stroke(); e.preventDefault();
       }, {passive: false});
-      
       canvas.addEventListener("touchend", () => drawing = false);
     }
-
     function clearCanvas() { if(canvas) { ctx.clearRect(0, 0, canvas.width, canvas.height); document.getElementById('hidden_ttd').value = ""; } }
     function isCanvasBlank() {
       if(!canvas || !ctx) return false;
