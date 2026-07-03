@@ -1,77 +1,107 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PerindagKU Web</title>
-    <link rel="stylesheet" href="css/style.css">
+  <base target="_top">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root { --identity-green: #2e7d32; }
+    .bg-green { background-color: var(--identity-green); color: white; }
+    .btn-green { background-color: var(--identity-green); color: white; }
+    .btn-green:hover { background-color: #1b5e20; color: white; }
+    .form-label { color: #333333; }
+  </style>
 </head>
-<body>
+<body class="bg-light">
 
-    <div id="loginPage" class="container">
-        <div class="header-title">
-            <h2>Login PerindagKU</h2>
-        </div>
-        
-        <form id="loginForm">
-            <div class="form-group">
-                <label for="nip">NIP</label>
-                <input type="text" id="nip" placeholder="Masukkan NIP Anda" required>
+  <div class="container my-5" style="max-width: 600px;">
+    <div class="card shadow-sm border-0 rounded-3">
+      
+      <div class="card-header bg-green text-center py-4 rounded-top-3">
+        <h4 class="mb-1 fw-bold">Portal Pendataan Pelaku Usaha</h4>
+        <p class="mb-0 small opacity-75">Silakan isi data usaha Anda dengan benar</p>
+      </div>
+      
+      <div class="card-body p-4">
+        <form id="submissionForm" onsubmit="handleFormSubmit(this); return false;">
+          
+          <? for (var i = 0; i < fields.length; i++) { 
+               var field = fields[i]; 
+               var requiredAttr = field.required ? 'required' : '';
+          ?>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">
+                <?= field.label ?> <? if(field.required){ ?><span class="text-danger">*</span><? } ?>
+              </label>
+              
+              <? if (field.type === 'text' || field.type === 'number' || field.type === 'date') { ?>
+                <input type="<?= field.type ?>" name="<?= field.name ?>" class="form-control" <?= requiredAttr ?>>
+              
+              <? } else if (field.type === 'textarea') { ?>
+                <textarea name="<?= field.name ?>" class="form-control" rows="3" <?= requiredAttr ?>></textarea>
+              
+              <? } else if (field.type === 'select') { ?>
+                <select name="<?= field.name ?>" class="form-select" <?= requiredAttr ?>>
+                  <option value="">-- Pilih <?= field.label ?> --</option>
+                  <? for (var j = 0; j < field.options.length; j++) { 
+                       var opt = field.options[j].trim();
+                  ?>
+                    <option value="<?= opt ?>"><?= opt ?></option>
+                  <? } ?>
+                </select>
+              
+              <? } else if (field.type === 'file') { ?>
+                <input type="file" name="<?= field.name ?>" class="form-control" <?= requiredAttr ?>>
+              <? } ?>
             </div>
-            
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" placeholder="Masukkan Password" required>
-            </div>
-            
-            <button type="submit" class="btn-primary">Masuk</button>
+          <? } ?>
+          
+          <div class="d-grid gap-2 mt-4">
+            <button type="submit" class="btn btn-green p-2.5 fw-bold" id="submitBtn">Kirim Data</button>
+          </div>
         </form>
-        <p id="loginMessage" class="message"></p>
-    </div>
-
-    <div id="dashboardPage" class="container" style="display: none;">
-        <div class="header-title">
-            <h2>Dashboard PerindagKU</h2>
-        </div>
         
-        <div class="user-card">
-            <p><strong>Nama:</strong> <span id="userNama">-</span></p>
-            <p><strong>NIP:</strong> <span id="userNip">-</span></p>
-            <p><strong>Hak Akses:</strong> <span id="userHakAkses">-</span></p>
-            <button id="btnLogout" class="btn-danger">Logout</button>
-        </div>
-
-        <hr class="divider">
-
-        <div class="form-section">
-            <h3>Form Laporan</h3>
-            <form id="laporanForm">
-                <div class="form-group">
-                    <label for="modul">Modul Dinas</label>
-                    <select id="modul" required>
-                        <option value="">-- Pilih Modul --</option>
-                        </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="namaUsaha">Nama Usaha</label>
-                    <input type="text" id="namaUsaha" placeholder="Contoh: Toko Maju Jaya" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="keterangan">Keterangan</label>
-                    <textarea id="keterangan" rows="4" placeholder="Tuliskan detail laporan..." required></textarea>
-                </div>
-
-                <button type="submit" class="btn-primary">Kirim Laporan</button>
-            </form>
-            <p id="laporanMessage" class="message"></p>
-        </div>
+        <div id="alertBox" class="alert mt-4 d-none" role="alert"></div>
+        
+      </div>
     </div>
+  </div>
 
-    <script src="js/api.js"></script>
-    <script src="js/session.js"></script>
-    <script src="js/login.js"></script>
-    <script src="js/laporan.js"></script>
+  <script>
+    function handleFormSubmit(formElement) {
+      const btn = document.getElementById('submitBtn');
+      const alertBox = document.getElementById('alertBox');
+      
+      // Mengunci tombol agar tidak tersubmit ganda
+      btn.disabled = true;
+      btn.innerText = 'Sedang Mengirim data...';
+      alertBox.classList.add('d-none');
+
+      // Mengirimkan formObject langsung ke Google Apps Script backend
+      google.script.run
+        .withSuccessHandler(function(response) {
+          btn.disabled = false;
+          btn.innerText = 'Kirim Data';
+          
+          alertBox.classList.remove('d-none', 'alert-danger', 'alert-success');
+          
+          if(response.success) {
+            alertBox.classList.add('alert-success');
+            alertBox.innerText = response.message;
+            formElement.reset(); // Reset form jika berhasil
+          } else {
+            alertBox.classList.add('alert-danger');
+            alertBox.innerText = 'Gagal: ' + response.message;
+          }
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.innerText = 'Kirim Data';
+          alertBox.classList.remove('d-none', 'alert-success');
+          alertBox.classList.add('alert-danger');
+          alertBox.innerText = 'Terjadi kesalahan sistem: ' + err.message;
+        })
+        .submitFormData(formElement);
+    }
+  </script>
 </body>
 </html>
