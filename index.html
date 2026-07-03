@@ -89,7 +89,7 @@
 
     document.addEventListener("DOMContentLoaded", function() {
       initGPS();
-      const fetchUrl = `${API_URL}?action=getFields&nama_modul=${encodeURIComponent(NAMA_MODUL)}`;
+      const fetchUrl = `${API_URL}?action=getFields&nama_modul=${encodeURIComponent(modul_dinas)}`;
       
       fetch(fetchUrl)
         .then(response => response.json())
@@ -126,7 +126,7 @@
     }
 
     function renderFormFields(fields) {
-      document.getElementById('formSubtitle').innerText = `Modul: ${NAMA_MODUL}`;
+      document.getElementById('formSubtitle').innerText = `Modul: ${modul_dinas}`;
       const container = document.getElementById('fieldsContainer');
       
       fields.forEach((fieldRow) => {
@@ -325,7 +325,7 @@
     // ==========================================
     function showBeritaAcara() {
       let previewText = "BERITA ACARA\n========================\n\n";
-      previewText += `Modul Laporan : ${NAMA_MODUL}\n`;
+      previewText += `Modul Laporan : ${modul_dinas}\n`;
       
       const now = new Date();
       const timeStr = `${now.getDate()} ${now.toLocaleString('id-ID', {month: 'long'})} ${now.getFullYear()}, ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
@@ -395,7 +395,7 @@
       }
 
       const finalPayloadToPost = {
-        "nama_modul": NAMA_MODUL,
+        "nama_modul": modul_dinas,
         "tanggal_input": new Date().toLocaleString('id-ID'),
         "payload": payloadInside
       };
