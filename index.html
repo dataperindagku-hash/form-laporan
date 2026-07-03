@@ -10,7 +10,7 @@
     .bg-green { background-color: var(--identity-green); color: white; }
     .btn-green { background-color: var(--identity-green); color: white; }
     .btn-green:hover { background-color: #1b5e20; color: white; }
-    .loading-spine { display: none; text-align: center; my: 20px; }
+    .loading-spine { display: none; text-align: center; margin: 20px 0; }
     #signature-pad { border: 2px dashed #ccc; border-radius: 5px; cursor: crosshair; background-color: #fafafa; }
   </style>
 </head>
@@ -34,7 +34,7 @@
           <div id="fieldsContainer"></div>
           
           <div class="d-grid gap-2 mt-4">
-            <button type="submit" class="btn btn-green p-2.5 fw-bold" id="submitBtn">Kirim Laporan</button>
+            <button type="submit" class="btn btn-green p-2 fw-bold" id="submitBtn">Kirim Laporan</button>
           </div>
         </form>
         
@@ -48,13 +48,12 @@
     // CONFIGURATION (Sesuaikan URL & Nama Modul)
     // ==========================================
     const API_URL = "https://script.google.com/macros/s/AKfycbxoabOhILmnKHBElWFFGr3qIjmpRWVouvdGOW5YGEXke6Fnr0udZ5FCBVg4K0YhhGMZ/exec"; 
-    const NAMA_MODUL = "komoditas"; // Sesuai nama tab/modul dinas di spreadsheet Anda
+    const NAMA_MODUL = "komoditas"; 
 
     let fieldsData = [];
     let isCanvasActive = false;
     let canvas, ctx, drawing = false;
 
-    // Ambil data susunan form berdasarkan konfigurasi di sheet "form_fields"
     document.addEventListener("DOMContentLoaded", function() {
       const fetchUrl = `${API_URL}?action=getFields&nama_modul=${encodeURIComponent(NAMA_MODUL)}`;
       
@@ -75,7 +74,6 @@
         });
     });
 
-    // Render HTML Input berdasarkan data 'jenis' dari server Anda
     function renderFormFields(fields) {
       document.getElementById('formTitle').innerText = `Formulir ${NAMA_MODUL.toUpperCase()}`;
       document.getElementById('formSubtitle').innerText = "Silakan isi data secara mandiri dengan valid";
@@ -85,7 +83,6 @@
         const fieldWrapper = document.createElement('div');
         fieldWrapper.className = 'mb-3';
         
-        // Buat Label
         const label = document.createElement('label');
         label.className = 'form-label fw-semibold text-secondary small';
         label.innerHTML = `${field.label.replace(/_/g, " ")}`;
@@ -93,11 +90,10 @@
 
         const jenis = field.jenis.toLowerCase();
 
-        // 1. INPUT DROPDOWN SELECT
         if (jenis === 'select' || jenis === 'pilihan') {
           const select = document.createElement('select');
           select.className = 'form-select';
-          select.name = field.label; // Gunakan label asli sebagai key payload
+          select.name = field.label; 
           select.required = true;
           
           select.innerHTML = `<option value="">-- Pilih ${field.label} --</option>`;
@@ -108,7 +104,6 @@
           }
           fieldWrapper.appendChild(select);
 
-        // 2. TEXTAREA (Untuk Alamat / Catatan)
         } else if (jenis === 'textarea' || jenis === 'alamat') {
           const textarea = document.createElement('textarea');
           textarea.className = 'form-control';
@@ -117,7 +112,6 @@
           textarea.required = true;
           fieldWrapper.appendChild(textarea);
 
-        // 3. INPUT FILE / FOTO / BUKTI
         } else if (jenis === 'file' || jenis === 'foto' || jenis === 'gambar') {
           const input = document.createElement('input');
           input.className = 'form-control';
@@ -127,7 +121,6 @@
           input.required = true;
           fieldWrapper.appendChild(input);
 
-        // 4. KHUSUS TANDA TANGAN (Canvas Digital)
         } else if (jenis === 'ttd' || jenis === 'tanda_tangan' || field.label.toLowerCase().includes('ttd')) {
           isCanvasActive = true;
           fieldWrapper.innerHTML += `
@@ -137,7 +130,6 @@
             </div>
             <input type="hidden" id="hidden_ttd" name="${field.label}" required>`;
             
-        // 5. INPUT STANDAR (Text, Number, Date, dll)
         } else {
           const input = document.createElement('input');
           input.className = 'form-control';
@@ -154,7 +146,6 @@
       if (isCanvasActive) initSignaturePad();
     }
 
-    // Fungsi Konversi File Input ke Base64 (Dibutuhkan oleh Mesin Image Upload Anda)
     function getBase64(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -164,7 +155,6 @@
       });
     }
 
-    // Eksekusi Pengiriman Data Mengikuti Pola doPost Anda
     async function submitFormData(formElement) {
       const btn = document.getElementById('submitBtn');
       btn.disabled = true;
@@ -173,7 +163,6 @@
       const formData = new FormData(formElement);
       let payloadInside = {};
 
-      // Jika ada Canvas TTD, kunci datanya ke input hidden
       if (isCanvasActive) {
         const hiddenTtd = document.getElementById('hidden_ttd');
         if (isCanvasBlank()) {
@@ -185,11 +174,9 @@
         hiddenTtd.value = canvas.toDataURL("image/png");
       }
 
-      // Olah seluruh field input ke dalam payloadObj
       for (const [key, value] of formData.entries()) {
         if (value instanceof File && value.name) {
           if(value.size > 0) {
-            // Konversi file gambar menjadi String Base64 agar ditangkap oleh baris Anda
             payloadInside[key] = await getBase64(value); 
           } else {
             payloadInside[key] = "";
@@ -199,35 +186,38 @@
         }
       }
 
-      // Bungkus data sesuai struktur mutlak pembacaan doPost Anda 
       const finalPayloadToPost = {
         "nama_modul": NAMA_MODUL,
         "tanggal_input": new Date().toLocaleString('id-ID'),
         "payload": payloadInside
       };
 
-      // Tembak menggunakan POST dengan header text/plain untuk menghindari batasan CORS Preflight
+      // Perbaikan: Hapus mode: "no-cors" agar JS dapat membaca respons JSON dari App Script
       fetch(API_URL, {
         method: "POST",
-        mode: "no-cors", // Memotong masalah CORS bawaan redirect web app google script
-        headers: { "Content-Type": "text/plain" },
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify(finalPayloadToPost)
       })
-      .then(() => {
-        showAlert('Sukses! Data laporan berhasil dikirim ke pangkalan data.', 'success');
-        formElement.reset();
-        if(isCanvasActive) clearCanvas();
-        btn.disabled = false;
-        btn.innerText = 'Kirim Laporan';
+      .then(response => response.json())
+      .then(data => {
+        // Menyesuaikan dengan logika backend yang mengembalikan "status" dan "pesan"
+        if (data.status === "Sukses") {
+            showAlert(data.pesan || 'Sukses! Data laporan berhasil dikirim ke pangkalan data.', 'success');
+            formElement.reset();
+            if(isCanvasActive) clearCanvas();
+        } else {
+            showAlert('Gagal: ' + (data.pesan || 'Terjadi kesalahan di server'), 'danger');
+        }
       })
       .catch(err => {
-        showAlert('Gagal mengirim data: ' + err.message, 'danger');
+        showAlert('Gagal terhubung ke server: ' + err.message, 'danger');
+      })
+      .finally(() => {
         btn.disabled = false;
         btn.innerText = 'Kirim Laporan';
       });
     }
 
-    // Helper Notifikasi
     function showAlert(msg, type) {
       const box = document.getElementById('alertBox');
       box.className = `alert mt-4 alert-${type}`;
@@ -244,12 +234,10 @@
       ctx.lineWidth = 3;
       ctx.strokeStyle = "#000000";
 
-      // Mouse Events
       canvas.addEventListener("mousedown", (e) => { drawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); });
       canvas.addEventListener("mousemove", (e) => { if (drawing) { ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); } });
       canvas.addEventListener("mouseup", () => drawing = false);
       
-      // Touch Events (Untuk HP / Smartphone)
       canvas.addEventListener("touchstart", (e) => {
         drawing = true; ctx.beginPath();
         var touch = e.touches[0];
