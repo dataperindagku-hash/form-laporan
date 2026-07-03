@@ -6,35 +6,40 @@
   <title>Portal Pendataan Pelaku Usaha - Kota Baubau</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    :root { --identity-green: #2e7d32; }
+    :root { --identity-green: #1B5E20; --identity-yellow: #F57F17;}
+    body { background-color: #F4F7F6; }
     .bg-green { background-color: var(--identity-green); color: white; }
-    .btn-green { background-color: var(--identity-green); color: white; }
-    .btn-green:hover { background-color: #1b5e20; color: white; }
-    .loading-spine { display: none; text-align: center; margin: 20px 0; }
-    #signature-pad { border: 2px dashed #ccc; border-radius: 5px; cursor: crosshair; background-color: #fafafa; }
+    .btn-green { background-color: var(--identity-green); color: white; border-radius: 25px;}
+    .btn-green:hover { background-color: #144d18; color: white; }
+    .btn-preview { background-color: #1976D2; color: white; border-radius: 20px; }
+    .modern-input { background-color: #FAFAFA; border: 2px solid #E0E0E0; border-radius: 20px; padding: 10px 15px; }
+    #signature-pad { border: 2px dashed #ccc; border-radius: 20px; cursor: crosshair; background-color: #fafafa; }
   </style>
 </head>
-<body class="bg-light">
+<body>
 
   <div class="container my-5" style="max-width: 650px;">
-    <div class="card shadow border-0 rounded-3">
+    <div class="card shadow border-0 rounded-4">
       
-      <div class="card-header bg-green text-center py-4 rounded-top-3">
-        <h4 class="mb-1 fw-bold" id="formTitle">Portal Pendataan Terpadu</h4>
-        <p class="mb-0 small opacity-75" id="formSubtitle">Memuat formulir...</p>
+      <div class="card-header bg-green text-left py-4 rounded-top-4 d-flex align-items-center">
+        <div>
+          <h4 class="mb-1 fw-bold text-white" id="formTitle">Formulir Pelaporan</h4>
+          <p class="mb-0 small" style="color: #A5D6A7;" id="formSubtitle">Modul: Memuat...</p>
+        </div>
       </div>
       
-      <div class="card-body p-4">
+      <div class="card-body p-4 p-md-5">
         <div id="loadingArea" class="my-4 text-center">
           <div class="spinner-border text-success" role="status"></div>
-          <p class="mt-2 text-muted small">Menyelaraskan struktur database...</p>
+          <p class="mt-2 text-muted small">Menyiapkan formulir...</p>
         </div>
 
         <form id="dynamicForm" class="d-none" onsubmit="submitFormData(this); return false;">
+          <h5 class="fw-bold mb-4" style="color: var(--identity-green);">Lengkapi Rincian Data</h5>
           <div id="fieldsContainer"></div>
           
-          <div class="d-grid gap-2 mt-4">
-            <button type="submit" class="btn btn-green p-2 fw-bold" id="submitBtn">Kirim Laporan</button>
+          <div class="d-grid gap-2 mt-5">
+            <button type="submit" class="btn btn-green p-3 fw-bold text-uppercase" id="submitBtn">Kirim Laporan</button>
           </div>
         </form>
         
@@ -43,18 +48,47 @@
     </div>
   </div>
 
+  <!-- Modal Preview Berita Acara -->
+  <div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold">Pratinjau Dokumen</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body bg-light">
+          <pre id="previewContent" style="white-space: pre-wrap; font-family: monospace; font-size: 13px;"></pre>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Tutup & Lanjut TTD</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    // ==========================================
-    // CONFIGURATION (Sesuaikan URL & Nama Modul)
-    // ==========================================
     const API_URL = "https://script.google.com/macros/s/AKfycbxoabOhILmnKHBElWFFGr3qIjmpRWVouvdGOW5YGEXke6Fnr0udZ5FCBVg4K0YhhGMZ/exec"; 
     const NAMA_MODUL = "komoditas"; 
+
+    // Data Wilayah Offline Baubau
+    const dataWilayah = {
+        "Betoambari": ["Katobengke", "Labalawa", "Lipu", "Sulaa", "Waborobo"],
+        "Murhum": ["Baadia", "Melai", "Wajo", "Lamangga", "Tanganapada"],
+        "Batupoaro": ["Bone-Bone", "Kaobula", "Lanto", "Nganganaumala", "Tarafu", "Wameo"],
+        "Kokalukuna": ["Kadolo", "Kadolomoko", "Lakologou", "Liwuto", "Sukanaeyo", "Waruruma"],
+        "Sorawolio": ["Bugigi", "Gonda Baru", "Kaisabu Baru", "Karya Baru"],
+        "Bungi": ["Kampeonaho", "Liabuku", "Ngkaring Karing", "Tampuna", "Waliabuku"],
+        "Lea-Lea": ["Kalia-Kalia", "Kantingola", "Kolese", "Lowu-Lowu", "Palabusa"]
+    };
 
     let fieldsData = [];
     let isCanvasActive = false;
     let canvas, ctx, drawing = false;
+    let lokasiSaatIni = "Mencari sinyal GPS...";
 
     document.addEventListener("DOMContentLoaded", function() {
+      initGPS();
       const fetchUrl = `${API_URL}?action=getFields&nama_modul=${encodeURIComponent(NAMA_MODUL)}`;
       
       fetch(fetchUrl)
@@ -62,7 +96,7 @@
         .then(data => {
           document.getElementById('loadingArea').classList.add('d-none');
           if (data.length === 0) {
-            showAlert('Gagal memuat form. Periksa nama modul atau tab form_fields Anda.', 'danger');
+            showAlert('Formulir kosong di server.', 'danger');
             return;
           }
           fieldsData = data;
@@ -74,67 +108,207 @@
         });
     });
 
+    function initGPS() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          pos => { 
+            lokasiSaatIni = `${pos.coords.latitude}, ${pos.coords.longitude}`;
+            document.querySelectorAll('.input-lokasi').forEach(el => el.value = lokasiSaatIni);
+          },
+          err => { 
+            lokasiSaatIni = "Izin lokasi ditolak pengguna";
+            document.querySelectorAll('.input-lokasi').forEach(el => el.value = lokasiSaatIni);
+          }
+        );
+      } else {
+        lokasiSaatIni = "GPS tidak tersedia";
+      }
+    }
+
     function renderFormFields(fields) {
-      document.getElementById('formTitle').innerText = `Formulir ${NAMA_MODUL.toUpperCase()}`;
-      document.getElementById('formSubtitle').innerText = "Silakan isi data secara mandiri dengan valid";
+      document.getElementById('formSubtitle').innerText = `Modul: ${NAMA_MODUL}`;
       const container = document.getElementById('fieldsContainer');
       
-      fields.forEach((field, index) => {
-        const fieldWrapper = document.createElement('div');
-        fieldWrapper.className = 'mb-3';
+      fields.forEach((fieldRow) => {
+        // Adaptasi format mapping fields dari Apps Script
+        let label = "", jenis = "text", opsi = "";
+        for(let key in fieldRow) {
+            const k = key.toLowerCase().trim();
+            if(k.includes("label") || k.includes("pertanyaan")) label = fieldRow[key];
+            if(k.includes("jenis")) jenis = fieldRow[key];
+            if(k.includes("opsi") || k.includes("pilihan")) opsi = fieldRow[key];
+        }
+
+        if(!label) return;
         
-        const label = document.createElement('label');
-        label.className = 'form-label fw-semibold text-secondary small';
-        label.innerHTML = `${field.label.replace(/_/g, " ")}`;
-        fieldWrapper.appendChild(label);
+        const labelClean = label.toLowerCase();
+        if(labelClean.includes("petugas") || labelClean.includes("surveyor")) return;
 
-        const jenis = field.jenis.toLowerCase();
+        const jenisClean = jenis.toLowerCase().trim();
+        const fieldWrapper = document.createElement('div');
+        fieldWrapper.className = 'mb-4';
+        
+        const labelEl = document.createElement('label');
+        labelEl.className = 'form-label fw-bold small text-secondary mb-2';
+        labelEl.innerHTML = label;
+        fieldWrapper.appendChild(labelEl);
 
-        if (jenis === 'select' || jenis === 'pilihan') {
+        // LOGIKA KONDISIONAL BERDASARKAN TIPE
+        if (jenisClean === 'date_auto' || jenisClean === 'tanggal_auto') {
+          const input = document.createElement('input');
+          input.className = 'form-control modern-input fw-bold text-success';
+          input.type = 'text';
+          input.name = label;
+          const today = new Date();
+          input.value = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
+          input.readOnly = true;
+          fieldWrapper.appendChild(input);
+
+        } else if (jenisClean === 'lokasi' || jenisClean === 'koordinat' || jenisClean === 'lokasi_auto') {
+          const input = document.createElement('input');
+          input.className = 'form-control modern-input fw-bold text-success input-lokasi';
+          input.type = 'text';
+          input.name = label;
+          input.value = lokasiSaatIni;
+          input.readOnly = true;
+          fieldWrapper.appendChild(input);
+
+        } else if (jenisClean === 'kondisional' || jenisClean === 'bercabang' || jenisClean === 'ya_tidak') {
           const select = document.createElement('select');
-          select.className = 'form-select';
-          select.name = field.label; 
-          select.required = true;
+          select.className = 'form-select modern-input field-input';
+          select.name = label; 
+          select.innerHTML = `<option value="">Pilih...</option><option value="Ya">Ya</option><option value="Tidak">Tidak</option>`;
           
-          select.innerHTML = `<option value="">-- Pilih ${field.label} --</option>`;
-          if (field.opsi) {
-            field.opsi.split(',').forEach(opt => {
+          const inputSub = document.createElement('input');
+          inputSub.type = 'text';
+          inputSub.className = 'form-control modern-input mt-2 d-none field-input';
+          inputSub.name = `${label}_keterangan`;
+          inputSub.placeholder = "Tulis keterangan terkait opsi 'Ya'...";
+          
+          select.addEventListener('change', function() {
+            if(this.value === 'Ya') { inputSub.classList.remove('d-none'); inputSub.required = true; } 
+            else { inputSub.classList.add('d-none'); inputSub.required = false; inputSub.value = ''; }
+          });
+
+          fieldWrapper.appendChild(select);
+          fieldWrapper.appendChild(inputSub);
+
+        } else if (jenisClean === 'dropdown' || jenisClean === 'pilihan' || jenisClean === 'select') {
+          const select = document.createElement('select');
+          select.className = 'form-select modern-input field-input';
+          select.name = label; 
+          select.required = true;
+          select.innerHTML = `<option value="">-- Pilih --</option>`;
+          
+          if (opsi) {
+            opsi.split(',').forEach(opt => {
               select.innerHTML += `<option value="${opt.trim()}">${opt.trim()}</option>`;
             });
           }
+          
+          const inputLainnya = document.createElement('input');
+          inputLainnya.type = 'text';
+          inputLainnya.className = 'form-control modern-input mt-2 d-none field-input';
+          inputLainnya.name = `${label}_lainnya`;
+          inputLainnya.placeholder = "Tuliskan lainnya...";
+
+          select.addEventListener('change', function() {
+            if(this.value.toLowerCase() === 'lainnya' || this.value.toLowerCase() === 'lain-lain') {
+              inputLainnya.classList.remove('d-none'); inputLainnya.required = true;
+            } else {
+              inputLainnya.classList.add('d-none'); inputLainnya.required = false; inputLainnya.value = '';
+            }
+          });
+
           fieldWrapper.appendChild(select);
+          fieldWrapper.appendChild(inputLainnya);
 
-        } else if (jenis === 'textarea' || jenis === 'alamat') {
-          const textarea = document.createElement('textarea');
-          textarea.className = 'form-control';
-          textarea.name = field.label;
-          textarea.rows = 3;
-          textarea.required = true;
-          fieldWrapper.appendChild(textarea);
+        } else if (jenisClean === 'kecamatan') {
+          const selKec = document.createElement('select');
+          selKec.className = 'form-select modern-input mb-2 field-input';
+          selKec.name = 'kecamatan';
+          selKec.required = true;
+          selKec.innerHTML = `<option value="">Pilih Kecamatan</option>`;
+          Object.keys(dataWilayah).forEach(kec => { selKec.innerHTML += `<option value="${kec}">${kec}</option>`; });
 
-        } else if (jenis === 'file' || jenis === 'foto' || jenis === 'gambar') {
+          const selKel = document.createElement('select');
+          selKel.className = 'form-select modern-input mb-2 d-none field-input';
+          selKel.name = 'kelurahan';
+
+          const inpRt = document.createElement('input');
+          inpRt.type = 'text';
+          inpRt.className = 'form-control modern-input d-none field-input';
+          inpRt.name = 'rt_rw';
+          inpRt.placeholder = "RT/RW";
+
+          selKec.addEventListener('change', function() {
+            selKel.innerHTML = `<option value="">Pilih Kelurahan</option>`;
+            if(this.value && dataWilayah[this.value]) {
+              dataWilayah[this.value].forEach(kel => { selKel.innerHTML += `<option value="${kel}">${kel}</option>`; });
+              selKel.classList.remove('d-none'); selKel.required = true;
+            } else {
+              selKel.classList.add('d-none'); selKel.required = false; inpRt.classList.add('d-none');
+            }
+          });
+
+          selKel.addEventListener('change', function() {
+            if(this.value) { inpRt.classList.remove('d-none'); } else { inpRt.classList.add('d-none'); }
+          });
+
+          fieldWrapper.appendChild(selKec);
+          fieldWrapper.appendChild(selKel);
+          fieldWrapper.appendChild(inpRt);
+
+        } else if (jenisClean === 'number' || jenisClean === 'angka' || jenisClean === 'hp' || jenisClean === 'nib') {
+          const isTahunAtauHp = labelClean.includes("tahun") || labelClean.includes("nomor") || labelClean.includes("hp") || labelClean.includes("nik") || jenisClean.includes("hp");
           const input = document.createElement('input');
-          input.className = 'form-control';
+          input.className = 'form-control modern-input field-input';
+          input.type = isTahunAtauHp ? 'tel' : 'text';
+          input.name = label;
+          input.placeholder = isTahunAtauHp ? `Masukkan ${label}...` : `Masukkan nominal/angka...`;
+          input.required = true;
+
+          if(!isTahunAtauHp) {
+            input.addEventListener('input', function(e) {
+              let val = this.value.replace(/\./g, '');
+              if(!isNaN(val) && val.length > 0) {
+                this.value = parseInt(val, 10).toLocaleString('id-ID');
+              } else {
+                this.value = val.replace(/[^\d]/g, '');
+              }
+            });
+          }
+          fieldWrapper.appendChild(input);
+
+        } else if (jenisClean === 'foto' || jenisClean === 'gambar' || jenisClean === 'file') {
+          const input = document.createElement('input');
+          input.className = 'form-control modern-input';
           input.type = 'file';
-          input.name = field.label;
+          input.name = label;
           input.accept = 'image/*';
           input.required = true;
           fieldWrapper.appendChild(input);
 
-        } else if (jenis === 'ttd' || jenis === 'tanda_tangan' || field.label.toLowerCase().includes('ttd')) {
+        } else if (jenisClean === 'ttd' || jenisClean === 'signature' || jenisClean === 'tandatangan') {
           isCanvasActive = true;
           fieldWrapper.innerHTML += `
-            <div class="position-relative">
-              <canvas id="signature-pad" width="550" height="200" class="w-100"></canvas>
-              <button type="button" class="btn btn-sm btn-danger position-absolute bottom-0 end-0 m-2" onclick="clearCanvas()">Hapus</button>
+            <div class="p-2 border rounded-4 bg-white shadow-sm">
+              <button type="button" class="btn btn-preview w-100 mb-3 py-2 fw-bold" onclick="showBeritaAcara()">📄 Lihat Preview Berita Acara</button>
+              <div class="position-relative">
+                <canvas id="signature-pad" width="550" height="200" class="w-100"></canvas>
+              </div>
+              <div class="text-end mt-2">
+                <span class="text-danger small fw-bold" style="cursor:pointer;" onclick="clearCanvas()">🗑️ Bersihkan Tanda Tangan</span>
+              </div>
             </div>
-            <input type="hidden" id="hidden_ttd" name="${field.label}" required>`;
+            <input type="hidden" id="hidden_ttd" name="${label}" required>`;
             
         } else {
           const input = document.createElement('input');
-          input.className = 'form-control';
-          input.type = (jenis === 'number' || jenis === 'angka') ? 'number' : (jenis === 'date' || jenis === 'tanggal') ? 'date' : 'text';
-          input.name = field.label;
+          input.className = 'form-control modern-input field-input';
+          input.type = (jenisClean === 'date' || jenisClean === 'tanggal') ? 'date' : 'text';
+          input.name = label;
+          input.placeholder = "Ketik di sini...";
           input.required = true;
           fieldWrapper.appendChild(input);
         }
@@ -144,6 +318,36 @@
 
       document.getElementById('dynamicForm').classList.remove('d-none');
       if (isCanvasActive) initSignaturePad();
+    }
+
+    // ==========================================
+    // PREVIEW BERITA ACARA
+    // ==========================================
+    function showBeritaAcara() {
+      let previewText = "BERITA ACARA\n========================\n\n";
+      previewText += `Modul Laporan : ${NAMA_MODUL}\n`;
+      
+      const now = new Date();
+      const timeStr = `${now.getDate()} ${now.toLocaleString('id-ID', {month: 'long'})} ${now.getFullYear()}, ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+      
+      previewText += `Waktu Data    : ${timeStr}\n`;
+      previewText += `Lokasi GPS    : ${lokasiSaatIni}\n\n`;
+      previewText += "RINCIAN DATA:\n------------------------\n";
+
+      const inputs = document.querySelectorAll('.field-input');
+      inputs.forEach(input => {
+        if (!input.classList.contains('d-none')) {
+          let val = input.value || "-";
+          let name = input.name || input.previousElementSibling?.innerText || "Data";
+          previewText += `• ${name}: ${val}\n`;
+        }
+      });
+
+      previewText += "\n========================\n";
+      previewText += "Dengan ini pihak pelaku usaha menyatakan bahwa data yang diberikan telah sesuai dan benar adanya untuk digunakan sebagaimana mestinya.";
+
+      document.getElementById('previewContent').innerText = previewText;
+      new bootstrap.Modal(document.getElementById('previewModal')).show();
     }
 
     function getBase64(file) {
@@ -158,7 +362,7 @@
     async function submitFormData(formElement) {
       const btn = document.getElementById('submitBtn');
       btn.disabled = true;
-      btn.innerText = 'Mengirim data ke server...';
+      btn.innerText = 'MENGIRIM DATA...';
       
       const formData = new FormData(formElement);
       let payloadInside = {};
@@ -167,9 +371,7 @@
         const hiddenTtd = document.getElementById('hidden_ttd');
         if (isCanvasBlank()) {
           showAlert('Tanda tangan wajib diisi!', 'danger');
-          btn.disabled = false;
-          btn.innerText = 'Kirim Laporan';
-          return;
+          btn.disabled = false; btn.innerText = 'KIRIM LAPORAN'; return;
         }
         hiddenTtd.value = canvas.toDataURL("image/png");
       }
@@ -182,7 +384,13 @@
             payloadInside[key] = "";
           }
         } else {
-          payloadInside[key] = value;
+          // Bersihkan titik ribuan jika itu adalah input angka berformat
+          let finalVal = value;
+          const inputEl = document.querySelector(`input[name="${key}"]`);
+          if(inputEl && !inputEl.readOnly && inputEl.type === 'text' && value.includes('.')) {
+              if(!isNaN(value.replace(/\./g, ''))) { finalVal = value.replace(/\./g, ''); }
+          }
+          payloadInside[key] = finalVal;
         }
       }
 
@@ -192,7 +400,6 @@
         "payload": payloadInside
       };
 
-      // Perbaikan: Hapus mode: "no-cors" agar JS dapat membaca respons JSON dari App Script
       fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -200,22 +407,17 @@
       })
       .then(response => response.json())
       .then(data => {
-        // Menyesuaikan dengan logika backend yang mengembalikan "status" dan "pesan"
         if (data.status === "Sukses") {
-            showAlert(data.pesan || 'Sukses! Data laporan berhasil dikirim ke pangkalan data.', 'success');
+            showAlert(data.pesan || 'Sukses! Laporan Tersimpan.', 'success');
             formElement.reset();
             if(isCanvasActive) clearCanvas();
+            window.scrollTo(0,0);
         } else {
             showAlert('Gagal: ' + (data.pesan || 'Terjadi kesalahan di server'), 'danger');
         }
       })
-      .catch(err => {
-        showAlert('Gagal terhubung ke server: ' + err.message, 'danger');
-      })
-      .finally(() => {
-        btn.disabled = false;
-        btn.innerText = 'Kirim Laporan';
-      });
+      .catch(err => { showAlert('Gagal terhubung ke server.', 'danger'); })
+      .finally(() => { btn.disabled = false; btn.innerText = 'KIRIM LAPORAN'; });
     }
 
     function showAlert(msg, type) {
@@ -233,6 +435,7 @@
       ctx = canvas.getContext('2d');
       ctx.lineWidth = 3;
       ctx.strokeStyle = "#000000";
+      ctx.lineJoin = "round";
 
       canvas.addEventListener("mousedown", (e) => { drawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); });
       canvas.addEventListener("mousemove", (e) => { if (drawing) { ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); } });
@@ -244,7 +447,8 @@
         var rect = canvas.getBoundingClientRect();
         ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
         e.preventDefault();
-      });
+      }, {passive: false});
+      
       canvas.addEventListener("touchmove", (e) => {
         if (!drawing) return;
         var touch = e.touches[0];
@@ -252,7 +456,8 @@
         ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
         ctx.stroke();
         e.preventDefault();
-      });
+      }, {passive: false});
+      
       canvas.addEventListener("touchend", () => drawing = false);
     }
 
