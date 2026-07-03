@@ -24,14 +24,27 @@
       <div class="card-header bg-green text-left py-4 rounded-top-4 d-flex align-items-center">
         <div>
           <h4 class="mb-1 fw-bold text-white" id="formTitle">Formulir Pelaporan</h4>
-          <p class="mb-0 small" style="color: #A5D6A7;" id="formSubtitle">Modul: Memuat...</p>
+          <p class="mb-0 small" style="color: #A5D6A7;" id="formSubtitle">Modul: Belum dipilih</p>
         </div>
       </div>
       
       <div class="card-body p-4 p-md-5">
-        <div id="loadingArea" class="my-4 text-center">
+        
+        <!-- BAGIAN BARU: Pilihan Modul -->
+        <div id="moduleSelectionArea" class="mb-4 p-3 rounded-4" style="background-color: #E8F5E9; border: 1px solid #C8E6C9;">
+          <label class="form-label fw-bold text-success mb-2">Pilih Modul Pendataan:</label>
+          <select id="moduleSelector" class="form-select modern-input" onchange="loadModuleForm()">
+            <option value="">-- Sentuh untuk memilih --</option>
+            <option value="Pendataan Usaha Perdagangan">Pendataan Usaha Perdagangan</option>
+            <option value="Pendataan Pedagang Pasar">Pendataan Pedagang Pasar</option>
+            <option value="Pendataan IKM">Pendataan IKM</option>
+            <option value="Pendataan Pasar Swalayan">Pendataan Pasar Swalayan</option>
+          </select>
+        </div>
+
+        <div id="loadingArea" class="my-4 text-center d-none">
           <div class="spinner-border text-success" role="status"></div>
-          <p class="mt-2 text-muted small">Menyiapkan formulir...</p>
+          <p class="mt-2 text-muted small">Menyiapkan formulir dari server...</p>
         </div>
 
         <form id="dynamicForm" class="d-none" onsubmit="submitFormData(this); return false;">
@@ -69,9 +82,10 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxoabOhILmnKHBElWFFGr3qIjmpRWVouvdGOW5YGEXke6Fnr0udZ5FCBVg4K0YhhGMZ/exec"; 
-    const NAMA_MODUL = "Pendataan Pedagang Pasar"; 
+    
+    // Variabel NAMA_MODUL sekarang dibuat dinamis (bisa berubah sesuai pilihan user)
+    let NAMA_MODUL = ""; 
 
-    // Data Wilayah Offline Baubau
     const dataWilayah = {
         "Betoambari": ["Katobengke", "Labalawa", "Lipu", "Sulaa", "Waborobo"],
         "Murhum": ["Baadia", "Melai", "Wajo", "Lamangga", "Tanganapada"],
@@ -89,24 +103,56 @@
 
     document.addEventListener("DOMContentLoaded", function() {
       initGPS();
+      // Proses penarikan data dipindahkan ke dalam fungsi loadModuleForm()
+    });
+
+    // ==========================================
+    // FUNGSI BARU: Menarik formulir saat opsi dipilih
+    // ==========================================
+    function loadModuleForm() {
+      const selector = document.getElementById('moduleSelector');
+      NAMA_MODUL = selector.value;
+      
+      const formEl = document.getElementById('dynamicForm');
+      const container = document.getElementById('fieldsContainer');
+      const loading = document.getElementById('loadingArea');
+      const alertBox = document.getElementById('alertBox');
+      
+      // Reset form jika dikosongkan kembali
+      if (!NAMA_MODUL) {
+        formEl.classList.add('d-none');
+        loading.classList.add('d-none');
+        document.getElementById('formSubtitle').innerText = "Modul: Belum dipilih";
+        return;
+      }
+
+      // Tampilkan animasi loading
+      formEl.classList.add('d-none');
+      alertBox.classList.add('d-none');
+      loading.classList.remove('d-none');
+      container.innerHTML = ""; // Bersihkan field lama
+      document.getElementById('formSubtitle').innerText = `Modul: ${NAMA_MODUL} (Memuat...)`;
+
       const fetchUrl = `${API_URL}?action=getFields&nama_modul=${encodeURIComponent(NAMA_MODUL)}`;
       
       fetch(fetchUrl)
         .then(response => response.json())
         .then(data => {
-          document.getElementById('loadingArea').classList.add('d-none');
+          loading.classList.add('d-none');
           if (data.length === 0) {
-            showAlert('Formulir kosong di server.', 'danger');
+            showAlert(`Formulir untuk modul "${NAMA_MODUL}" belum tersedia di server.`, 'danger');
+            document.getElementById('formSubtitle').innerText = `Modul: ${NAMA_MODUL} (Kosong)`;
             return;
           }
           fieldsData = data;
           renderFormFields(data);
         })
         .catch(err => {
-          document.getElementById('loadingArea').classList.add('d-none');
+          loading.classList.add('d-none');
           showAlert('Koneksi gagal: ' + err.message, 'danger');
+          document.getElementById('formSubtitle').innerText = `Modul: ${NAMA_MODUL} (Gagal Memuat)`;
         });
-    });
+    }
 
     function initGPS() {
       if (navigator.geolocation) {
@@ -128,9 +174,9 @@
     function renderFormFields(fields) {
       document.getElementById('formSubtitle').innerText = `Modul: ${NAMA_MODUL}`;
       const container = document.getElementById('fieldsContainer');
+      isCanvasActive = false; // Reset status canvas
       
       fields.forEach((fieldRow) => {
-        // Adaptasi format mapping fields dari Apps Script
         let label = "", jenis = "text", opsi = "";
         for(let key in fieldRow) {
             const k = key.toLowerCase().trim();
@@ -153,7 +199,6 @@
         labelEl.innerHTML = label;
         fieldWrapper.appendChild(labelEl);
 
-        // LOGIKA KONDISIONAL BERDASARKAN TIPE
         if (jenisClean === 'date_auto' || jenisClean === 'tanggal_auto') {
           const input = document.createElement('input');
           input.className = 'form-control modern-input fw-bold text-success';
@@ -320,9 +365,6 @@
       if (isCanvasActive) initSignaturePad();
     }
 
-    // ==========================================
-    // PREVIEW BERITA ACARA
-    // ==========================================
     function showBeritaAcara() {
       let previewText = "BERITA ACARA\n========================\n\n";
       previewText += `Modul Laporan : ${NAMA_MODUL}\n`;
@@ -384,7 +426,6 @@
             payloadInside[key] = "";
           }
         } else {
-          // Bersihkan titik ribuan jika itu adalah input angka berformat
           let finalVal = value;
           const inputEl = document.querySelector(`input[name="${key}"]`);
           if(inputEl && !inputEl.readOnly && inputEl.type === 'text' && value.includes('.')) {
@@ -410,6 +451,9 @@
         if (data.status === "Sukses") {
             showAlert(data.pesan || 'Sukses! Laporan Tersimpan.', 'success');
             formElement.reset();
+            // Kembalikan ke pilihan modul kosong
+            document.getElementById('moduleSelector').value = "";
+            loadModuleForm();
             if(isCanvasActive) clearCanvas();
             window.scrollTo(0,0);
         } else {
@@ -432,6 +476,8 @@
     // ==========================================
     function initSignaturePad() {
       canvas = document.getElementById('signature-pad');
+      if(!canvas) return; // Mencegah error jika kanvas tidak ada
+      
       ctx = canvas.getContext('2d');
       ctx.lineWidth = 3;
       ctx.strokeStyle = "#000000";
@@ -463,6 +509,7 @@
 
     function clearCanvas() { if(canvas) { ctx.clearRect(0, 0, canvas.width, canvas.height); document.getElementById('hidden_ttd').value = ""; } }
     function isCanvasBlank() {
+      if(!canvas || !ctx) return false;
       const buffer = new Uint32Array(ctx.getImageData(0, 0, canvas.width, canvas.height).data.buffer);
       return !buffer.some(color => color !== 0);
     }
