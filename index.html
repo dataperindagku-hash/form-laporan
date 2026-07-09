@@ -227,19 +227,18 @@
       };
       navContainer.appendChild(btnGanti);
       
-      if (URL_SURAT_TUGAS_SERVER) {
-          const btnSuratTugas = document.createElement('button');
-          btnSuratTugas.type = "button";
-          btnSuratTugas.className = "btn btn-sm fw-bold rounded-pill px-3 text-white";
-          btnSuratTugas.style.backgroundColor = "var(--identity-blue)";
-          btnSuratTugas.innerHTML = "📄 LIHAT SURAT TUGAS";
-          btnSuratTugas.onclick = () => {
-             document.getElementById('suratTugasModalTitle').innerText = `Surat Tugas: ${NAMA_MODUL}`;
-             document.getElementById('suratTugasIframe').src = URL_SURAT_TUGAS_SERVER;
-             new bootstrap.Modal(document.getElementById('suratTugasModal')).show();
-          };
-          navContainer.appendChild(btnSuratTugas);
-      }
+     if (URL_SURAT_TUGAS_SERVER) {
+    const btnSuratTugas = document.createElement('button');
+    btnSuratTugas.type = "button";
+    btnSuratTugas.className = "btn btn-sm fw-bold rounded-pill px-3 text-white";
+    btnSuratTugas.style.backgroundColor = "var(--identity-blue)";
+    btnSuratTugas.innerHTML = "📄 LIHAT SURAT TUGAS";
+    btnSuratTugas.onclick = () => {
+       // Langsung buka di tab baru agar tidak diblokir oleh sistem keamanan Google Docs
+       window.open(URL_SURAT_TUGAS_SERVER, '_blank');
+    };
+    navContainer.appendChild(btnSuratTugas);
+}
       container.appendChild(navContainer);
 
       // 3. Render Sisa Input (Kecuali Surat Tugas / Petugas)
