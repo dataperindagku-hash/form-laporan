@@ -6,15 +6,17 @@
   <title>Portal Pendataan Pelaku Usaha - Kota Baubau</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    :root { --identity-green: #1B5E20; --identity-yellow: #F57F17;}
-    body { background-color: #F4F7F6; }
+    :root { --identity-green: #1B5E20; --identity-yellow: #F57F17; --identity-blue: #0288D1;}
+    body { background-color: #F4F7F6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     .bg-green { background-color: var(--identity-green); color: white; }
     .btn-green { background-color: var(--identity-green); color: white; border-radius: 25px;}
     .btn-green:hover { background-color: #144d18; color: white; }
-    .btn-preview { background-color: #1976D2; color: white; border-radius: 20px; }
+    .btn-preview { background-color: var(--identity-yellow); color: white; border-radius: 20px; }
+    .btn-preview:hover { background-color: #e67300; color: white; }
     .btn-buka { background-color: var(--identity-yellow); color: white; font-weight: bold; }
     .btn-buka:hover { background-color: #e67300; color: white; }
     .modern-input { background-color: #FAFAFA; border: 2px solid #E0E0E0; border-radius: 20px; padding: 10px 15px; }
+    .modern-input:focus { border-color: var(--identity-green); box-shadow: none; }
     #signature-pad { border: 2px dashed #ccc; border-radius: 20px; cursor: crosshair; background-color: #fafafa; }
   </style>
 </head>
@@ -41,19 +43,18 @@
               <option value="Pendataan Usaha Perdagangan">Pendataan Usaha Perdagangan Mikro</option>
               <option value="Pendataan Pedagang Pasar">Pendataan Pedagang Pasar</option>
               <option value="Pendataan IKM">Pendataan IKM</option>
-              <option value="Pendataan Pasar Swalayan">Pendataan Pasar Swalayan</option>
+              <option value="Pendataan Usaha Menengah Keatas">Pendataan Usaha Menengah Keatas</option>
             </select>
           </div>
 
           <div class="d-grid">
             <button type="button" class="btn btn-buka p-2 rounded-pill" onclick="verifikasiAkses()">Buka Formulir 📝</button>
           </div>
-
         </div>
 
         <div id="loadingArea" class="my-4 text-center d-none">
           <div class="spinner-border text-success" role="status"></div>
-          <p class="mt-2 text-muted small">Membuka brankas data server...</p>
+          <p class="mt-2 text-muted small">Memuat formulir dari server...</p>
         </div>
 
         <form id="dynamicForm" class="d-none" onsubmit="submitFormData(this); return false;">
@@ -73,15 +74,32 @@
   <div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-scrollable">
       <div class="modal-content">
-        <div class="modal-header">
+        <div class="modal-header bg-light">
           <h5 class="modal-title fw-bold">Pratinjau Dokumen</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <div class="modal-body bg-light">
+        <div class="modal-body bg-white">
           <pre id="previewContent" style="white-space: pre-wrap; font-family: monospace; font-size: 13px;"></pre>
         </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-primary rounded-pill px-4" data-bs-dismiss="modal">Tutup & Lanjut TTD</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="suratTugasModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header bg-green text-white">
+          <h5 class="modal-title fw-bold" id="suratTugasModalTitle">Surat Tugas</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-0" style="height: 70vh; overflow: hidden;">
+          <iframe id="suratTugasIframe" src="" width="100%" height="100%" style="border: none;"></iframe>
+        </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Tutup & Lanjut TTD</button>
+          <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Tutup Dokumen</button>
         </div>
       </div>
     </div>
@@ -92,6 +110,7 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbxoabOhILmnKHBElWFFGr3qIjmpRWVouvdGOW5YGEXke6Fnr0udZ5FCBVg4K0YhhGMZ/exec"; 
     
     let NAMA_MODUL = ""; 
+    let URL_SURAT_TUGAS_SERVER = ""; // Menyimpan surat tugas dinamis dari server
 
     const dataWilayah = {
         "Betoambari": ["Katobengke", "Labalawa", "Lipu", "Sulaa", "Waborobo"],
@@ -104,7 +123,6 @@
         "Wolio": ["Bataraguru", "Batulo", "Bukit Wolio Indah", "Kadolokatapi", "Tomba","Wale","Wangkanapi"]
     };
 
-    let fieldsData = [];
     let isCanvasActive = false;
     let canvas, ctx, drawing = false;
     let lokasiSaatIni = "Mencari sinyal GPS...";
@@ -113,16 +131,29 @@
       initGPS();
     });
 
-    // ==========================================
-    // FUNGSI MEMBUKA MODUL (TANPA PASSWORD)
-    // ==========================================
+    function initGPS() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          pos => { 
+            lokasiSaatIni = `${pos.coords.latitude}, ${pos.coords.longitude}`;
+            document.querySelectorAll('.input-lokasi').forEach(el => el.value = lokasiSaatIni);
+          },
+          err => { 
+            lokasiSaatIni = "Izin lokasi ditolak pengguna";
+            document.querySelectorAll('.input-lokasi').forEach(el => el.value = lokasiSaatIni);
+          },
+          { enableHighAccuracy: true }
+        );
+      } else {
+        lokasiSaatIni = "GPS tidak tersedia";
+      }
+    }
+
     function verifikasiAkses() {
       const selector = document.getElementById('moduleSelector');
-      const formEl = document.getElementById('dynamicForm');
-      
       NAMA_MODUL = selector.value;
       
-      formEl.classList.add('d-none');
+      document.getElementById('dynamicForm').classList.add('d-none');
       document.getElementById('alertBox').classList.add('d-none');
 
       if (!NAMA_MODUL) {
@@ -130,24 +161,17 @@
         return;
       }
 
-      // Langsung buka formulir jika modul sudah dipilih
       document.getElementById('moduleSelectionArea').classList.add('d-none');
       loadModuleForm();
     }
 
-    // ==========================================
-    // MENARIK FORMULIR
-    // ==========================================
     function loadModuleForm() {
       const container = document.getElementById('fieldsContainer');
       const loading = document.getElementById('loadingArea');
-      const formEl = document.getElementById('dynamicForm');
-      const alertBox = document.getElementById('alertBox');
       
-      formEl.classList.add('d-none');
-      alertBox.classList.add('d-none');
       loading.classList.remove('d-none');
       container.innerHTML = ""; 
+      URL_SURAT_TUGAS_SERVER = "";
       document.getElementById('formSubtitle').innerText = `Modul: ${NAMA_MODUL} (Memuat...)`;
 
       const fetchUrl = `${API_URL}?action=getFields&nama_modul=${encodeURIComponent(NAMA_MODUL)}`;
@@ -162,7 +186,6 @@
             document.getElementById('moduleSelectionArea').classList.remove('d-none');
             return;
           }
-          fieldsData = data;
           renderFormFields(data);
         })
         .catch(err => {
@@ -173,28 +196,56 @@
         });
     }
 
-    function initGPS() {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          pos => { 
-            lokasiSaatIni = `${pos.coords.latitude}, ${pos.coords.longitude}`;
-            document.querySelectorAll('.input-lokasi').forEach(el => el.value = lokasiSaatIni);
-          },
-          err => { 
-            lokasiSaatIni = "Izin lokasi ditolak pengguna";
-            document.querySelectorAll('.input-lokasi').forEach(el => el.value = lokasiSaatIni);
-          }
-        );
-      } else {
-        lokasiSaatIni = "GPS tidak tersedia";
-      }
-    }
-
     function renderFormFields(fields) {
       document.getElementById('formSubtitle').innerText = `Modul Aktif: ${NAMA_MODUL}`;
       const container = document.getElementById('fieldsContainer');
       isCanvasActive = false; 
       
+      // 1. Deteksi URL Surat Tugas dari Server (Sesuai Logika Kotlin)
+      fields.forEach((fieldRow) => {
+        let jenis = "", opsi = "";
+        for(let key in fieldRow) {
+            const k = key.toLowerCase().trim();
+            if(k.includes("jenis")) jenis = fieldRow[key];
+            if(k.includes("opsi") || k.includes("pilihan")) opsi = fieldRow[key];
+        }
+        const jenisClean = jenis.toLowerCase().trim();
+        if (jenisClean === 'surat_tugas' || jenisClean === 'dokumen_tugas') {
+            URL_SURAT_TUGAS_SERVER = opsi; // Ambil Link/URL aslinya
+        }
+      });
+
+      // 2. Tambah Tombol Navigasi Atas
+      const navContainer = document.createElement('div');
+      navContainer.className = "d-flex flex-wrap gap-2 mb-4";
+
+      const btnGanti = document.createElement('button');
+      btnGanti.type = "button";
+      btnGanti.className = "btn btn-outline-danger btn-sm fw-bold rounded-pill px-3";
+      btnGanti.innerHTML = "🔙 Ganti Modul";
+      btnGanti.onclick = function() {
+          document.getElementById('dynamicForm').classList.add('d-none');
+          document.getElementById('moduleSelectionArea').classList.remove('d-none');
+          document.getElementById('formSubtitle').innerText = "Pilih modul pendataan";
+      };
+      navContainer.appendChild(btnGanti);
+      
+      if (URL_SURAT_TUGAS_SERVER) {
+          const btnSuratTugas = document.createElement('button');
+          btnSuratTugas.type = "button";
+          btnSuratTugas.className = "btn btn-sm fw-bold rounded-pill px-3 text-white";
+          btnSuratTugas.style.backgroundColor = "var(--identity-blue)";
+          btnSuratTugas.innerHTML = "📄 LIHAT SURAT TUGAS";
+          btnSuratTugas.onclick = () => {
+             document.getElementById('suratTugasModalTitle').innerText = `Surat Tugas: ${NAMA_MODUL}`;
+             document.getElementById('suratTugasIframe').src = URL_SURAT_TUGAS_SERVER;
+             new bootstrap.Modal(document.getElementById('suratTugasModal')).show();
+          };
+          navContainer.appendChild(btnSuratTugas);
+      }
+      container.appendChild(navContainer);
+
+      // 3. Render Sisa Input (Kecuali Surat Tugas / Petugas)
       fields.forEach((fieldRow) => {
         let label = "", jenis = "text", opsi = "";
         for(let key in fieldRow) {
@@ -206,8 +257,11 @@
 
         if(!label) return;
         const labelClean = label.toLowerCase();
-        if(labelClean.includes("petugas") || labelClean.includes("surveyor")) return;
         const jenisClean = jenis.toLowerCase().trim();
+        
+        // Skip Petugas & Surat Tugas (sudah dihandle)
+        if(labelClean.includes("petugas") || labelClean.includes("surveyor") || jenisClean === 'surat_tugas' || jenisClean === 'dokumen_tugas') return;
+        
         const fieldWrapper = document.createElement('div');
         fieldWrapper.className = 'mb-4';
         
@@ -334,7 +388,7 @@
           const input = document.createElement('input');
           input.className = 'form-control modern-input';
           input.type = 'file';
-          input.name = label;
+          input.name = label; // Tetap label asli, konversi saat POST
           input.accept = 'image/*';
           input.required = true;
           fieldWrapper.appendChild(input);
@@ -342,13 +396,13 @@
         } else if (jenisClean === 'ttd' || jenisClean === 'signature' || jenisClean === 'tandatangan') {
           isCanvasActive = true;
           fieldWrapper.innerHTML += `
-            <div class="p-2 border rounded-4 bg-white shadow-sm">
-              <button type="button" class="btn btn-preview w-100 mb-3 py-2 fw-bold" onclick="showBeritaAcara()">📄 Lihat Preview Berita Acara</button>
+            <div class="p-3 border rounded-4 bg-white shadow-sm mt-2">
+              <button type="button" class="btn btn-preview w-100 mb-3 py-2 fw-bold" onclick="showBeritaAcara()">📄 Pratinjau Dokumen Berita Acara</button>
               <div class="position-relative">
                 <canvas id="signature-pad" width="550" height="200" class="w-100"></canvas>
               </div>
               <div class="text-end mt-2">
-                <span class="text-danger small fw-bold" style="cursor:pointer;" onclick="clearCanvas()">🗑️ Bersihkan Tanda Tangan</span>
+                <span class="text-danger small fw-bold" style="cursor:pointer;" onclick="clearCanvas()">🗑️ Hapus Tanda Tangan</span>
               </div>
             </div>
             <input type="hidden" id="hidden_ttd" name="${label}" required>`;
@@ -366,20 +420,7 @@
         container.appendChild(fieldWrapper);
       });
 
-      // Munculkan form dan tombol ganti modul
       document.getElementById('dynamicForm').classList.remove('d-none');
-      
-      // Tambahkan tombol untuk ganti modul di bagian atas form
-      const btnGanti = document.createElement('button');
-      btnGanti.className = "btn btn-outline-danger btn-sm mb-4 fw-bold";
-      btnGanti.innerHTML = "🔙 Ganti Modul";
-      btnGanti.onclick = function() {
-          document.getElementById('dynamicForm').classList.add('d-none');
-          document.getElementById('moduleSelectionArea').classList.remove('d-none');
-          document.getElementById('formSubtitle').innerText = "Pilih modul pendataan";
-      };
-      container.insertBefore(btnGanti, container.firstChild);
-
       if (isCanvasActive) initSignaturePad();
     }
 
@@ -420,33 +461,66 @@
       btn.disabled = true;
       btn.innerText = 'MENGIRIM DATA...';
       const formData = new FormData(formElement);
+      
+      // Objek penampung rincian form persis seperti JsonObj Android
       let payloadInside = {};
 
-      if (isCanvasActive) {
-        const hiddenTtd = document.getElementById('hidden_ttd');
-        if (isCanvasBlank()) { showAlert('Tanda tangan wajib diisi!', 'danger'); btn.disabled = false; btn.innerText = 'KIRIM LAPORAN'; return; }
-        hiddenTtd.value = canvas.toDataURL("image/png");
-      }
+      // 1. Suntik Data Petugas
+      payloadInside["nama_petugas"] = "Pendata (Via Web)";
+      payloadInside["petugas_pendata"] = "Pendata (Via Web)";
 
+      // 2. Loop Data Input Teks dan File
       for (const [key, value] of formData.entries()) {
+        if (key === document.getElementById('hidden_ttd')?.name) continue; // TTD Dieksekusi Terpisah
+
         if (value instanceof File && value.name) {
-          if(value.size > 0) { payloadInside[key] = await getBase64(value); } else { payloadInside[key] = ""; }
+          if(value.size > 0) { 
+              let base64Full = await getBase64(value); 
+              let base64Clean = base64Full.split(',')[1] || base64Full; // Hapus awalan data:image/png;base64,
+              let cleanLabel = key.replace(/ /g, "_"); // Ganti spasi menjadi underscore
+              payloadInside[cleanLabel + "_Base64"] = base64Clean; // Tambah akhiran Base64 (Syarat Server)
+          }
         } else {
           let finalVal = value;
           const inputEl = document.querySelector(`input[name="${key}"]`);
           if(inputEl && !inputEl.readOnly && inputEl.type === 'text' && value.includes('.')) {
-              if(!isNaN(value.replace(/\./g, ''))) { finalVal = value.replace(/\./g, ''); }
+              if(!isNaN(value.replace(/\./g, ''))) { finalVal = value.replace(/\./g, ''); } // Strip mata uang
           }
           payloadInside[key] = finalVal;
         }
       }
 
+      // 3. Render Tanda Tangan ke format Server
+      if (isCanvasActive) {
+        if (isCanvasBlank()) { 
+            showAlert('Tanda tangan wajib diisi sebelum menyimpan!', 'danger'); 
+            btn.disabled = false; btn.innerText = 'KIRIM LAPORAN'; 
+            return; 
+        }
+        let ttdName = document.getElementById('hidden_ttd').name;
+        let ttdBase64 = canvas.toDataURL("image/png").split(',')[1];
+        payloadInside[ttdName.replace(/ /g, "_") + "_Base64"] = ttdBase64;
+      }
+
+      // 4. Format Tanggal Input Khas Kotlin (dd-MM-yyyy HH:mm:ss)
+      const now = new Date();
+      const dd = String(now.getDate()).padStart(2, '0');
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const yyyy = now.getFullYear();
+      const hh = String(now.getHours()).padStart(2, '0');
+      const min = String(now.getMinutes()).padStart(2, '0');
+      const ss = String(now.getSeconds()).padStart(2, '0');
+      const tanggalInputStr = `${dd}-${mm}-${yyyy} ${hh}:${min}:${ss} (Via Web)`;
+
+      // 5. Susun Payload Akhir Seperti Android Retrofit
       const finalPayloadToPost = {
+        "action": "insert_data",
         "nama_modul": NAMA_MODUL,
-        "tanggal_input": new Date().toLocaleString('id-ID'),
-        "payload": payloadInside
+        "tanggal_input": tanggalInputStr,
+        "data_payload": JSON.stringify(payloadInside) // Jadikan String (Syarat Server)
       };
 
+      // 6. Eksekusi Jaringan
       fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -454,10 +528,9 @@
       })
       .then(response => response.json())
       .then(data => {
-        if (data.status === "Sukses") {
-            showAlert(data.pesan || 'Sukses! Laporan Tersimpan.', 'success');
+        if (data.status === "Sukses" || data.status === 200 || data.result === "success") {
+            showAlert(data.pesan || 'Sukses! Laporan Tersimpan Di Database.', 'success');
             formElement.reset();
-            // Kembalikan ke menu utama setelah sukses kirim
             document.getElementById('dynamicForm').classList.add('d-none');
             document.getElementById('moduleSelectionArea').classList.remove('d-none');
             document.getElementById('moduleSelector').value = "";
@@ -465,10 +538,10 @@
             if(isCanvasActive) clearCanvas();
             window.scrollTo(0,0);
         } else {
-            showAlert('Gagal: ' + (data.pesan || 'Terjadi kesalahan di server'), 'danger');
+            showAlert('Gagal: ' + (data.pesan || 'Terjadi kesalahan eksekusi data'), 'danger');
         }
       })
-      .catch(err => { showAlert('Gagal terhubung ke server.', 'danger'); })
+      .catch(err => { showAlert('Gagal terhubung ke server/Jaringan Lemah.', 'danger'); })
       .finally(() => { btn.disabled = false; btn.innerText = 'KIRIM LAPORAN'; });
     }
 
@@ -479,9 +552,6 @@
       box.classList.remove('d-none');
     }
 
-    // ==========================================
-    // LOGIKA OPERASIONAL CANVAS TANDA TANGAN
-    // ==========================================
     function initSignaturePad() {
       canvas = document.getElementById('signature-pad');
       if(!canvas) return; 
