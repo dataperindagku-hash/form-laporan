@@ -26,17 +26,16 @@
       <div class="card-header bg-green text-left py-4 rounded-top-4 d-flex align-items-center">
         <div>
           <h4 class="mb-1 fw-bold text-white" id="formTitle">Formulir Pelaporan</h4>
-          <p class="mb-0 small" style="color: #A5D6A7;" id="formSubtitle">Pilih modul dan masukkan kode akses</p>
+          <p class="mb-0 small" style="color: #A5D6A7;" id="formSubtitle">Pilih modul pendataan</p>
         </div>
       </div>
       
       <div class="card-body p-4 p-md-5">
         
-        <!-- BAGIAN HAK AKSES: Pilihan Modul & PIN -->
         <div id="moduleSelectionArea" class="mb-4 p-4 rounded-4 shadow-sm" style="background-color: #E8F5E9; border: 1px solid #C8E6C9;">
           
-          <div class="mb-3">
-            <label class="form-label fw-bold text-success mb-2">1. Pilih Modul Pendataan:</label>
+          <div class="mb-4">
+            <label class="form-label fw-bold text-success mb-2">Pilih Modul Pendataan:</label>
             <select id="moduleSelector" class="form-select modern-input">
               <option value="">-- Sentuh untuk memilih --</option>
               <option value="Pendataan Usaha Perdagangan">Pendataan Usaha Perdagangan Mikro</option>
@@ -46,13 +45,8 @@
             </select>
           </div>
 
-          <div class="mb-3">
-            <label class="form-label fw-bold text-success mb-2">2. Kode Akses Pendata:</label>
-            <input type="password" id="inputKodeAkses" class="form-control modern-input" placeholder="Masukkan PIN / Kode Modul">
-          </div>
-
           <div class="d-grid">
-            <button type="button" class="btn btn-buka p-2 rounded-pill" onclick="verifikasiAkses()">Buka Formulir 🔒</button>
+            <button type="button" class="btn btn-buka p-2 rounded-pill" onclick="verifikasiAkses()">Buka Formulir 📝</button>
           </div>
 
         </div>
@@ -76,9 +70,7 @@
     </div>
   </div>
 
-  <!-- Modal Preview Berita Acara -->
   <div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
-    <!-- ... (Sama seperti sebelumnya) ... -->
     <div class="modal-dialog modal-dialog-scrollable">
       <div class="modal-content">
         <div class="modal-header">
@@ -101,16 +93,6 @@
     
     let NAMA_MODUL = ""; 
 
-    // ==========================================
-    // PENGATURAN KODE AKSES (PIN) MASING-MASING MODUL
-    // ==========================================
-    const dataAksesModul = {
-      "Pendataan Usaha Perdagangan Mikro": "DAGANG123",
-      "Pendataan Pedagang Pasar": "PASAR123",
-      "Pendataan IKM": "IKM123",
-      "Pendataan Pasar Swalayan": "SWALAYAN123"
-    };
-
     const dataWilayah = {
         "Betoambari": ["Katobengke", "Labalawa", "Lipu", "Sulaa", "Waborobo"],
         "Murhum": ["Baadia", "Melai", "Wajo", "Lamangga", "Tanganapada"],
@@ -118,7 +100,7 @@
         "Kokalukuna": ["Kadolo", "Kadolomoko", "Lakologou", "Liwuto", "Sukanaeyo", "Waruruma"],
         "Sorawolio": ["Bugigi", "Gonda Baru", "Kaisabu Baru", "Karya Baru"],
         "Bungi": ["Kampeonaho", "Liabuku", "Ngkaring Karing", "Tampuna", "Waliabuku"],
-        "Lea-Lea": ["Kalia-Kalia", "Kantingola", "Kolese", "Lowu-Lowu", "Palabusa"]
+        "Lea-Lea": ["Kalia-Kalia", "Kantingola", "Kolese", "Lowu-Lowu", "Palabusa"],
         "Wolio": ["Bataraguru", "Batulo", "Bukit Wolio Indah", "Kadolokatapi", "Tomba","Wale","Wangkanapi"]
     };
 
@@ -132,16 +114,14 @@
     });
 
     // ==========================================
-    // FUNGSI VERIFIKASI KODE AKSES
+    // FUNGSI MEMBUKA MODUL (TANPA PASSWORD)
     // ==========================================
     function verifikasiAkses() {
       const selector = document.getElementById('moduleSelector');
-      const inputPin = document.getElementById('inputKodeAkses').value;
       const formEl = document.getElementById('dynamicForm');
       
       NAMA_MODUL = selector.value;
       
-      // Sembunyikan form setiap kali verifikasi ulang
       formEl.classList.add('d-none');
       document.getElementById('alertBox').classList.add('d-none');
 
@@ -150,25 +130,13 @@
         return;
       }
 
-      if (!inputPin) {
-        showAlert('Kode akses tidak boleh kosong!', 'warning');
-        return;
-      }
-
-      // Cek apakah PIN yang dimasukkan cocok dengan dataAksesModul
-      if (dataAksesModul[NAMA_MODUL] === inputPin) {
-        // Jika Benar, sembunyikan area pilihan dan muat formulir
-        document.getElementById('moduleSelectionArea').classList.add('d-none');
-        loadModuleForm();
-      } else {
-        // Jika Salah
-        showAlert('Kode Akses salah! Anda tidak memiliki izin untuk membuka modul ini.', 'danger');
-        document.getElementById('inputKodeAkses').value = ""; // Kosongkan input
-      }
+      // Langsung buka formulir jika modul sudah dipilih
+      document.getElementById('moduleSelectionArea').classList.add('d-none');
+      loadModuleForm();
     }
 
     // ==========================================
-    // MENARIK FORMULIR SETELAH AKSES DIBERIKAN
+    // MENARIK FORMULIR
     // ==========================================
     function loadModuleForm() {
       const container = document.getElementById('fieldsContainer');
@@ -191,7 +159,6 @@
           if (data.length === 0) {
             showAlert(`Formulir untuk modul "${NAMA_MODUL}" belum tersedia di server.`, 'danger');
             document.getElementById('formSubtitle').innerText = `Modul: ${NAMA_MODUL} (Kosong)`;
-            // Kembalikan kotak akses agar bisa pilih modul lain
             document.getElementById('moduleSelectionArea').classList.remove('d-none');
             return;
           }
@@ -405,12 +372,11 @@
       // Tambahkan tombol untuk ganti modul di bagian atas form
       const btnGanti = document.createElement('button');
       btnGanti.className = "btn btn-outline-danger btn-sm mb-4 fw-bold";
-      btnGanti.innerHTML = "🔙 Kunci & Ganti Modul";
+      btnGanti.innerHTML = "🔙 Ganti Modul";
       btnGanti.onclick = function() {
           document.getElementById('dynamicForm').classList.add('d-none');
           document.getElementById('moduleSelectionArea').classList.remove('d-none');
-          document.getElementById('inputKodeAkses').value = "";
-          document.getElementById('formSubtitle').innerText = "Pilih modul dan masukkan kode akses";
+          document.getElementById('formSubtitle').innerText = "Pilih modul pendataan";
       };
       container.insertBefore(btnGanti, container.firstChild);
 
@@ -494,9 +460,8 @@
             // Kembalikan ke menu utama setelah sukses kirim
             document.getElementById('dynamicForm').classList.add('d-none');
             document.getElementById('moduleSelectionArea').classList.remove('d-none');
-            document.getElementById('inputKodeAkses').value = "";
             document.getElementById('moduleSelector').value = "";
-            document.getElementById('formSubtitle').innerText = "Pilih modul dan masukkan kode akses";
+            document.getElementById('formSubtitle').innerText = "Pilih modul pendataan";
             if(isCanvasActive) clearCanvas();
             window.scrollTo(0,0);
         } else {
