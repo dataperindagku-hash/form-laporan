@@ -18,34 +18,62 @@
     .modern-input { background-color: #FAFAFA; border: 2px solid #E0E0E0; border-radius: 20px; padding: 10px 15px; }
     .modern-input:focus { border-color: var(--identity-green); box-shadow: none; }
     #signature-pad { border: 2px dashed #ccc; border-radius: 20px; cursor: crosshair; background-color: #fafafa; }
+    
+    /* Tambahan style untuk Kop Surat */
+    .kop-surat { font-family: 'Times New Roman', Times, serif; color: #000; }
+    .kop-surat-border { border-bottom: 4px double #000; }
   </style>
 </head>
 <body>
 
-  <div class="container my-5" style="max-width: 650px;">
-    <div class="card shadow border-0 rounded-4">
+  <div class="container my-5" style="max-width: 750px;">
+    <div class="card shadow border-0 rounded-4 overflow-hidden">
       
-      <div class="card-header bg-green text-left py-4 rounded-top-4 d-flex align-items-center">
+      <div class="bg-white px-4 pt-4 pb-3 kop-surat-border">
+        <div class="d-flex align-items-center justify-content-center text-center flex-column flex-sm-row" style="gap: 15px;">
+          <img src="https://lh3.googleusercontent.com/d/1XzTvDF-3i4e_9SXlOBOAmveoWodmCY0l" alt="Logo Pemkot Baubau" style="width: 85px; height: auto;">
+          <div class="kop-surat">
+            <h5 class="mb-0 fw-bold" style="letter-spacing: 1px;">PEMERINTAH KOTA BAUBAU</h5>
+            <h5 class="mb-1 fw-bold" style="font-size: 1.15rem;">DINAS PERDAGANGAN, PERINDUSTRIAN, KOPERASI,<br>USAHA KECIL DAN MENENGAH</h5>
+            <p class="mb-0" style="font-size: 0.9rem;">Jalan Sultan Hasanuddin No. 48 Baubau Sulawesi Tenggara 93711<br>Email: dagperinkukm@baubaukota.go.id</p>
+          </div>
+        </div>
+      </div>
+      <div class="bg-green text-left py-3 px-4 d-flex align-items-center">
         <div>
-          <h4 class="mb-1 fw-bold text-white" id="formTitle">Formulir Pelaporan</h4>
-          <p class="mb-0 small" style="color: #A5D6A7;" id="formSubtitle">Pilih modul pendataan</p>
+          <h5 class="mb-1 fw-bold text-white" id="formTitle">Formulir Pendataan Pelaku Usaha Kota Baubau</h5>
+          <p class="mb-0 small" style="color: #A5D6A7;" id="formSubtitle"></p>
         </div>
       </div>
       
-      <div class="card-body p-4 p-md-5">
+      <div class="card-body p-4 p-md-5 bg-white">
         
+        <div class="mb-4 p-4 rounded-4 bg-light border border-light-subtle shadow-sm">
+          <h6 class="fw-bold text-success mb-2" style="font-size: 1.1rem; line-height: 1.4;">
+            Selamat Datang di Portal Pendataan Pelaku Usaha Kota Baubau
+          </h6>
+          <p class="text-secondary mb-3" style="text-align: justify; font-size: 0.95rem; line-height: 1.6;">
+            Terima kasih atas partisipasi Bapak/Ibu dalam mendukung pendataan pelaku usaha di Kota Baubau. Portal ini dirancang untuk memudahkan proses pendataan secara cepat, aman, dan akurat.
+
+Mohon luangkan waktu untuk mengisi formulir dengan lengkap, benar, dan sesuai kondisi usaha yang sebenarnya. Informasi yang Bapak/Ibu berikan akan menjadi dasar bagi Dinas Perdagangan Kota Baubau dalam meningkatkan pelayanan, pembinaan, pengawasan, serta penyusunan program yang lebih tepat sasaran.
+
+Terima kasih atas kerja sama dan kontribusi Bapak/Ibu dalam mendukung pembangunan sektor perdagangan di Kota Baubau.
+          </p>
+          <p class="mb-0 small fw-bold text-muted border-top pt-2" style="font-style: italic;">
+            Mari bersama mewujudkan data yang akurat untuk pelayanan yang lebih baik.
+          </p>
+        </div>
         <div id="moduleSelectionArea" class="mb-4 p-4 rounded-4 shadow-sm" style="background-color: #E8F5E9; border: 1px solid #C8E6C9;">
           
           <div class="mb-4">
             <label class="form-label fw-bold text-success mb-2">Pilih Modul Pendataan:</label>
             <select id="moduleSelector" class="form-select modern-input">
-             
               <option value="Pendataan Usaha Menengah Keatas">Pendataan Usaha Menengah Keatas</option>
             </select>
           </div>
 
           <div class="d-grid">
-            <button type="button" class="btn btn-buka p-2 rounded-pill" onclick="verifikasiAkses()">Buka Formulir 📝</button>
+            <button type="button" class="btn btn-buka p-2 rounded-pill" onclick="verifikasiAkses()">Buka Formulir 📥</button>
           </div>
         </div>
 
@@ -107,7 +135,7 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbxoabOhILmnKHBElWFFGr3qIjmpRWVouvdGOW5YGEXke6Fnr0udZ5FCBVg4K0YhhGMZ/exec"; 
     
     let NAMA_MODUL = ""; 
-    let URL_SURAT_TUGAS_SERVER = ""; // Menyimpan surat tugas dinamis dari server
+    let URL_SURAT_TUGAS_SERVER = ""; 
 
     const dataWilayah = {
         "Betoambari": ["Katobengke", "Labalawa", "Lipu", "Sulaa", "Waborobo"],
@@ -198,7 +226,6 @@
       const container = document.getElementById('fieldsContainer');
       isCanvasActive = false; 
       
-      // 1. Deteksi URL Surat Tugas dari Server (Sesuai Logika Kotlin)
       fields.forEach((fieldRow) => {
         let jenis = "", opsi = "";
         for(let key in fieldRow) {
@@ -208,18 +235,17 @@
         }
         const jenisClean = jenis.toLowerCase().trim();
         if (jenisClean === 'surat_tugas' || jenisClean === 'dokumen_tugas') {
-            URL_SURAT_TUGAS_SERVER = opsi; // Ambil Link/URL aslinya
+            URL_SURAT_TUGAS_SERVER = opsi;
         }
       });
 
-      // 2. Tambah Tombol Navigasi Atas
       const navContainer = document.createElement('div');
       navContainer.className = "d-flex flex-wrap gap-2 mb-4";
 
       const btnGanti = document.createElement('button');
       btnGanti.type = "button";
       btnGanti.className = "btn btn-outline-danger btn-sm fw-bold rounded-pill px-3";
-      btnGanti.innerHTML = "🔙 Ganti Modul";
+      btnGanti.innerHTML = "🔄 Ganti Modul";
       btnGanti.onclick = function() {
           document.getElementById('dynamicForm').classList.add('d-none');
           document.getElementById('moduleSelectionArea').classList.remove('d-none');
@@ -227,21 +253,19 @@
       };
       navContainer.appendChild(btnGanti);
       
-     if (URL_SURAT_TUGAS_SERVER) {
-    const btnSuratTugas = document.createElement('button');
-    btnSuratTugas.type = "button";
-    btnSuratTugas.className = "btn btn-sm fw-bold rounded-pill px-3 text-white";
-    btnSuratTugas.style.backgroundColor = "var(--identity-blue)";
-    btnSuratTugas.innerHTML = "📄 LIHAT SURAT TUGAS";
-    btnSuratTugas.onclick = () => {
-       // Langsung buka di tab baru agar tidak diblokir oleh sistem keamanan Google Docs
-       window.open(URL_SURAT_TUGAS_SERVER, '_blank');
-    };
-    navContainer.appendChild(btnSuratTugas);
-}
+      if (URL_SURAT_TUGAS_SERVER) {
+          const btnSuratTugas = document.createElement('button');
+          btnSuratTugas.type = "button";
+          btnSuratTugas.className = "btn btn-sm fw-bold rounded-pill px-3 text-white";
+          btnSuratTugas.style.backgroundColor = "var(--identity-blue)";
+          btnSuratTugas.innerHTML = "📄 LIHAT SURAT TUGAS";
+          btnSuratTugas.onclick = () => {
+             window.open(URL_SURAT_TUGAS_SERVER, '_blank');
+          };
+          navContainer.appendChild(btnSuratTugas);
+      }
       container.appendChild(navContainer);
 
-      // 3. Render Sisa Input (Kecuali Surat Tugas / Petugas)
       fields.forEach((fieldRow) => {
         let label = "", jenis = "text", opsi = "";
         for(let key in fieldRow) {
@@ -255,7 +279,6 @@
         const labelClean = label.toLowerCase();
         const jenisClean = jenis.toLowerCase().trim();
         
-        // Skip Petugas & Surat Tugas (sudah dihandle)
         if(labelClean.includes("petugas") || labelClean.includes("surveyor") || jenisClean === 'surat_tugas' || jenisClean === 'dokumen_tugas') return;
         
         const fieldWrapper = document.createElement('div');
@@ -384,7 +407,7 @@
           const input = document.createElement('input');
           input.className = 'form-control modern-input';
           input.type = 'file';
-          input.name = label; // Tetap label asli, konversi saat POST
+          input.name = label; 
           input.accept = 'image/*';
           input.required = true;
           fieldWrapper.appendChild(input);
@@ -398,7 +421,7 @@
                 <canvas id="signature-pad" width="550" height="200" class="w-100"></canvas>
               </div>
               <div class="text-end mt-2">
-                <span class="text-danger small fw-bold" style="cursor:pointer;" onclick="clearCanvas()">🗑️ Hapus Tanda Tangan</span>
+                <span class="text-danger small fw-bold" style="cursor:pointer;" onclick="clearCanvas()">❌ Hapus Tanda Tangan</span>
               </div>
             </div>
             <input type="hidden" id="hidden_ttd" name="${label}" required>`;
@@ -458,35 +481,31 @@
       btn.innerText = 'MENGIRIM DATA...';
       const formData = new FormData(formElement);
       
-      // Objek penampung rincian form persis seperti JsonObj Android
       let payloadInside = {};
 
-      // 1. Suntik Data Petugas
       payloadInside["nama_petugas"] = "Pendata (Via Web)";
       payloadInside["petugas_pendata"] = "Pendata (Via Web)";
 
-      // 2. Loop Data Input Teks dan File
       for (const [key, value] of formData.entries()) {
-        if (key === document.getElementById('hidden_ttd')?.name) continue; // TTD Dieksekusi Terpisah
+        if (key === document.getElementById('hidden_ttd')?.name) continue; 
 
         if (value instanceof File && value.name) {
           if(value.size > 0) { 
               let base64Full = await getBase64(value); 
-              let base64Clean = base64Full.split(',')[1] || base64Full; // Hapus awalan data:image/png;base64,
-              let cleanLabel = key.replace(/ /g, "_"); // Ganti spasi menjadi underscore
-              payloadInside[cleanLabel + "_Base64"] = base64Clean; // Tambah akhiran Base64 (Syarat Server)
+              let base64Clean = base64Full.split(',')[1] || base64Full; 
+              let cleanLabel = key.replace(/ /g, "_"); 
+              payloadInside[cleanLabel + "_Base64"] = base64Clean; 
           }
         } else {
           let finalVal = value;
           const inputEl = document.querySelector(`input[name="${key}"]`);
           if(inputEl && !inputEl.readOnly && inputEl.type === 'text' && value.includes('.')) {
-              if(!isNaN(value.replace(/\./g, ''))) { finalVal = value.replace(/\./g, ''); } // Strip mata uang
+              if(!isNaN(value.replace(/\./g, ''))) { finalVal = value.replace(/\./g, ''); } 
           }
           payloadInside[key] = finalVal;
         }
       }
 
-      // 3. Render Tanda Tangan ke format Server
       if (isCanvasActive) {
         if (isCanvasBlank()) { 
             showAlert('Tanda tangan wajib diisi sebelum menyimpan!', 'danger'); 
@@ -498,7 +517,6 @@
         payloadInside[ttdName.replace(/ /g, "_") + "_Base64"] = ttdBase64;
       }
 
-      // 4. Format Tanggal Input Khas Kotlin (dd-MM-yyyy HH:mm:ss)
       const now = new Date();
       const dd = String(now.getDate()).padStart(2, '0');
       const mm = String(now.getMonth() + 1).padStart(2, '0');
@@ -508,15 +526,13 @@
       const ss = String(now.getSeconds()).padStart(2, '0');
       const tanggalInputStr = `${dd}-${mm}-${yyyy} ${hh}:${min}:${ss} (Via Web)`;
 
-      // 5. Susun Payload Akhir Seperti Android Retrofit
       const finalPayloadToPost = {
         "action": "insert_data",
         "nama_modul": NAMA_MODUL,
         "tanggal_input": tanggalInputStr,
-        "data_payload": JSON.stringify(payloadInside) // Jadikan String (Syarat Server)
+        "data_payload": JSON.stringify(payloadInside) 
       };
 
-      // 6. Eksekusi Jaringan
       fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
